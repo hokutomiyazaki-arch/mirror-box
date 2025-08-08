@@ -2,103 +2,473 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ミラーセラピー簡易版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>ミラーセラピー</title>
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
-            background: #333;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #1a1a1a;
             color: white;
-            font-family: sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #2c3e50;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: normal;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .status-box {
+            background: #2c3e50;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
             text-align: center;
         }
+
+        .status-box.error {
+            background: #c0392b;
+        }
+
+        .status-box.success {
+            background: #27ae60;
+        }
+
+        .status-box.warning {
+            background: #f39c12;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            aspect-ratio: 4/3;
+        }
+
         video {
             width: 100%;
-            max-width: 100vw;
-            height: auto;
-            background: black;
+            height: 100%;
+            object-fit: cover;
             transform: scaleX(-1);
         }
-        .controls {
-            padding: 20px;
+
+        video.normal {
+            transform: scaleX(1);
         }
+
+        .center-line {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            background: rgba(255, 0, 0, 0.5);
+            display: none;
+        }
+
+        .center-line.active {
+            display: block;
+        }
+
+        .timer {
+            font-size: 36px;
+            text-align: center;
+            margin: 20px 0;
+            font-weight: bold;
+            display: none;
+        }
+
+        .timer.active {
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
         button {
-            background: #4CAF50;
+            background: #3498db;
             color: white;
             border: none;
-            padding: 15px 30px;
-            font-size: 18px;
-            border-radius: 5px;
-            margin: 10px;
-            cursor: pointer;
-        }
-        button:active {
-            opacity: 0.8;
-        }
-        #status {
-            margin: 20px;
             padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button.success {
+            background: #27ae60;
+        }
+
+        button.danger {
+            background: #e74c3c;
+        }
+
+        button:disabled {
+            background: #7f8c8d;
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .toggle-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #2c3e50;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 26px;
+            background: #7f8c8d;
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #27ae60;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(24px);
+        }
+
+        .debug-info {
             background: rgba(0,0,0,0.5);
+            padding: 10px;
             border-radius: 5px;
+            font-size: 12px;
+            margin-top: 10px;
+            font-family: monospace;
+        }
+
+        .instructions {
+            background: #34495e;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: #3498db;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
         }
     </style>
 </head>
 <body>
-    <h2>ミラーセラピー</h2>
-    <div id="status">カメラを起動してください</div>
-    <video id="video" autoplay playsinline></video>
-    <div class="controls">
-        <button onclick="startCamera()">カメラ起動</button>
-        <button onclick="toggleMirror()">反転切替</button>
-        <button onclick="stopCamera()">停止</button>
+    <div class="header">
+        <h1>ミラーボックスセラピー</h1>
+    </div>
+
+    <div class="container">
+        <div id="statusBox" class="status-box">
+            準備完了 - カメラを起動してください
+        </div>
+
+        <div id="instructions" class="instructions">
+            <h3>📱 カメラが起動しない場合:</h3>
+            <ol>
+                <li>ブラウザの設定でカメラ権限を許可</li>
+                <li>ページを再読み込み（下にスワイプ）</li>
+                <li>もう一度「カメラ起動」をタップ</li>
+            </ol>
+        </div>
+
+        <div class="video-container">
+            <video id="video" autoplay playsinline muted></video>
+            <div id="centerLine" class="center-line"></div>
+        </div>
+
+        <div id="timer" class="timer">00:00</div>
+
+        <div class="controls">
+            <button id="startBtn" onclick="startCamera()" class="success">
+                📷 カメラ起動
+            </button>
+
+            <div id="toggleControls" style="display: none;">
+                <div class="toggle-group">
+                    <span>鏡像反転</span>
+                    <div id="mirrorToggle" class="toggle-switch active" onclick="toggleMirror()"></div>
+                </div>
+
+                <div class="toggle-group">
+                    <span>中心線</span>
+                    <div id="lineToggle" class="toggle-switch" onclick="toggleCenterLine()"></div>
+                </div>
+
+                <button id="timerBtn" onclick="toggleTimer()">
+                    ⏱️ タイマー開始
+                </button>
+
+                <button onclick="stopCamera()" class="danger">
+                    停止
+                </button>
+            </div>
+        </div>
+
+        <div id="debugInfo" class="debug-info" style="display: none;"></div>
     </div>
 
     <script>
         let stream = null;
-        let mirrored = true;
+        let timerInterval = null;
+        let seconds = 0;
+        let isMirrored = true;
+
+        // デバッグ情報を表示
+        function showDebug(message) {
+            const debugInfo = document.getElementById('debugInfo');
+            debugInfo.style.display = 'block';
+            debugInfo.innerHTML += `${new Date().toLocaleTimeString()}: ${message}<br>`;
+        }
+
+        // ステータス表示を更新
+        function updateStatus(message, type = '') {
+            const statusBox = document.getElementById('statusBox');
+            statusBox.textContent = message;
+            statusBox.className = 'status-box';
+            if (type) {
+                statusBox.classList.add(type);
+            }
+        }
 
         async function startCamera() {
+            showDebug('カメラ起動開始...');
+            updateStatus('カメラを起動中...', 'warning');
+
             try {
-                document.getElementById('status').textContent = 'カメラを起動中...';
+                // まず権限の状態を確認（対応していれば）
+                if (navigator.permissions && navigator.permissions.query) {
+                    try {
+                        const result = await navigator.permissions.query({ name: 'camera' });
+                        showDebug(`カメラ権限状態: ${result.state}`);
+                        
+                        if (result.state === 'denied') {
+                            updateStatus('⚠️ カメラ権限が拒否されています。ブラウザ設定で許可してください', 'error');
+                            showDebug('権限が拒否されています');
+                            return;
+                        }
+                    } catch (e) {
+                        showDebug('権限APIが利用できません');
+                    }
+                }
+
+                // getUserMediaが利用可能か確認
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    updateStatus('❌ このブラウザはカメラAPIに対応していません', 'error');
+                    showDebug('getUserMediaが利用できません');
+                    return;
+                }
+
+                // カメラを起動
+                const constraints = {
+                    video: {
+                        facingMode: 'user',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    },
+                    audio: false
+                };
+
+                showDebug('getUserMediaを呼び出し中...');
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
                 
-                // シンプルな制約で開始
-                stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: true,
-                    audio: false 
-                });
+                showDebug('カメラストリーム取得成功');
                 
-                document.getElementById('video').srcObject = stream;
-                document.getElementById('status').textContent = 'カメラ起動中';
+                const video = document.getElementById('video');
+                video.srcObject = stream;
                 
-            } catch (err) {
-                console.error('Error:', err);
-                document.getElementById('status').textContent = 
-                    'エラー: ' + err.message + '\n' +
-                    'HTTPSでアクセスし、カメラ権限を許可してください';
+                // 動画の準備ができたら
+                video.onloadedmetadata = () => {
+                    showDebug('ビデオメタデータ読み込み完了');
+                    updateStatus('✅ カメラ起動成功', 'success');
+                    
+                    // UIを更新
+                    document.getElementById('startBtn').style.display = 'none';
+                    document.getElementById('toggleControls').style.display = 'block';
+                    document.getElementById('instructions').style.display = 'none';
+                };
+
+            } catch (error) {
+                showDebug(`エラー: ${error.name} - ${error.message}`);
+                
+                let errorMessage = '❌ カメラの起動に失敗しました: ';
+                
+                switch(error.name) {
+                    case 'NotAllowedError':
+                        errorMessage += 'カメラへのアクセスが拒否されました。権限を許可してください。';
+                        break;
+                    case 'NotFoundError':
+                        errorMessage += 'カメラが見つかりません。';
+                        break;
+                    case 'NotReadableError':
+                        errorMessage += 'カメラは他のアプリで使用中です。';
+                        break;
+                    case 'OverconstrainedError':
+                        errorMessage += 'カメラの設定に問題があります。';
+                        break;
+                    case 'SecurityError':
+                        errorMessage += 'セキュリティエラー。HTTPSでアクセスしてください。';
+                        break;
+                    default:
+                        errorMessage += error.message;
+                }
+                
+                updateStatus(errorMessage, 'error');
             }
         }
 
         function toggleMirror() {
             const video = document.getElementById('video');
-            mirrored = !mirrored;
-            video.style.transform = mirrored ? 'scaleX(-1)' : 'scaleX(1)';
-            document.getElementById('status').textContent = 
-                mirrored ? '鏡像表示中' : '通常表示中';
+            const toggle = document.getElementById('mirrorToggle');
+            
+            isMirrored = !isMirrored;
+            
+            if (isMirrored) {
+                video.classList.remove('normal');
+                toggle.classList.add('active');
+            } else {
+                video.classList.add('normal');
+                toggle.classList.remove('active');
+            }
+            
+            showDebug(`鏡像: ${isMirrored ? 'ON' : 'OFF'}`);
+        }
+
+        function toggleCenterLine() {
+            const line = document.getElementById('centerLine');
+            const toggle = document.getElementById('lineToggle');
+            
+            if (line.classList.contains('active')) {
+                line.classList.remove('active');
+                toggle.classList.remove('active');
+            } else {
+                line.classList.add('active');
+                toggle.classList.add('active');
+            }
+        }
+
+        function toggleTimer() {
+            const btn = document.getElementById('timerBtn');
+            const timerDisplay = document.getElementById('timer');
+            
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                btn.textContent = '⏱️ タイマー開始';
+                seconds = 0;
+                updateTimerDisplay();
+                timerDisplay.classList.remove('active');
+            } else {
+                timerDisplay.classList.add('active');
+                timerInterval = setInterval(() => {
+                    seconds++;
+                    updateTimerDisplay();
+                }, 1000);
+                btn.textContent = '⏸️ タイマー停止';
+            }
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            document.getElementById('timer').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
 
         function stopCamera() {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
                 stream = null;
-                document.getElementById('video').srcObject = null;
-                document.getElementById('status').textContent = 'カメラ停止';
             }
+            
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            
+            seconds = 0;
+            updateTimerDisplay();
+            
+            // UIをリセット
+            document.getElementById('startBtn').style.display = 'block';
+            document.getElementById('toggleControls').style.display = 'none';
+            document.getElementById('instructions').style.display = 'block';
+            document.getElementById('timer').classList.remove('active');
+            
+            updateStatus('準備完了 - カメラを起動してください');
+            showDebug('カメラ停止');
         }
 
-        // デバッグ情報
-        console.log('getUserMedia supported:', 
-            !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+        // ページ情報を表示
+        window.addEventListener('DOMContentLoaded', () => {
+            showDebug(`URL: ${window.location.href}`);
+            showDebug(`Protocol: ${window.location.protocol}`);
+            showDebug(`UserAgent: ${navigator.userAgent.substring(0, 50)}...`);
+        });
     </script>
 </body>
 </html>
