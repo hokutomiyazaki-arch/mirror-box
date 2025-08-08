@@ -2,75 +2,59 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#000000">
     <title>ミラーセラピー</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #1a1a1a;
-            color: white;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
         }
 
-        .header {
-            background: #2c3e50;
-            padding: 15px;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        }
-
-        .header h1 {
-            font-size: 20px;
-            font-weight: normal;
-        }
-
-        .container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            max-width: 600px;
-            margin: 0 auto;
+        .fullscreen-container {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-        }
-
-        .status-box {
-            background: #2c3e50;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .status-box.error {
-            background: #c0392b;
-        }
-
-        .status-box.success {
-            background: #27ae60;
-        }
-
-        .status-box.warning {
-            background: #f39c12;
-        }
-
-        .video-container {
-            position: relative;
-            width: 100%;
+            height: 100vh;
+            height: 100dvh;
             background: #000;
-            border-radius: 10px;
             overflow: hidden;
-            margin-bottom: 20px;
-            aspect-ratio: 4/3;
+        }
+
+        .video-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
         }
 
         video {
@@ -78,6 +62,7 @@
             height: 100%;
             object-fit: cover;
             transform: scaleX(-1);
+            display: block;
         }
 
         video.normal {
@@ -90,91 +75,162 @@
             top: 0;
             width: 2px;
             height: 100%;
-            background: rgba(255, 0, 0, 0.5);
+            background: rgba(255, 0, 0, 0.4);
             display: none;
+            pointer-events: none;
+            z-index: 10;
         }
 
         .center-line.active {
             display: block;
         }
 
-        .timer {
-            font-size: 36px;
-            text-align: center;
-            margin: 20px 0;
-            font-weight: bold;
-            display: none;
+        /* メニュートグルボタン */
+        .menu-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(52, 152, 219, 0.9);
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: transform 0.3s, background 0.3s;
         }
 
-        .timer.active {
+        .menu-toggle:active {
+            transform: scale(0.95);
+        }
+
+        .menu-toggle.menu-open {
+            background: rgba(231, 76, 60, 0.9);
+        }
+
+        /* コントロールパネル */
+        .control-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 20px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 999;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .control-panel.show {
+            transform: translateY(0);
+        }
+
+        /* タイマー表示 */
+        .timer-display {
+            position: fixed;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px 30px;
+            border-radius: 30px;
+            display: none;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .timer-display.active {
             display: block;
         }
 
-        .controls {
-            display: flex;
-            flex-direction: column;
+        /* コントロールボタン */
+        .control-grid {
+            display: grid;
             gap: 10px;
         }
 
-        button {
-            background: #3498db;
+        .control-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             color: white;
-            border: none;
             padding: 15px;
-            border-radius: 8px;
+            border-radius: 12px;
             font-size: 16px;
-            font-weight: bold;
             cursor: pointer;
             transition: all 0.3s;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
 
-        button:active {
+        .control-button:active {
             transform: scale(0.98);
+            background: rgba(255, 255, 255, 0.2);
         }
 
-        button.success {
-            background: #27ae60;
+        .control-button.primary {
+            background: rgba(52, 152, 219, 0.8);
+            border-color: rgba(52, 152, 219, 1);
         }
 
-        button.danger {
-            background: #e74c3c;
+        .control-button.danger {
+            background: rgba(231, 76, 60, 0.8);
+            border-color: rgba(231, 76, 60, 1);
         }
 
-        button:disabled {
-            background: #7f8c8d;
-            opacity: 0.5;
-            cursor: not-allowed;
+        .control-button.success {
+            background: rgba(46, 204, 113, 0.8);
+            border-color: rgba(46, 204, 113, 1);
         }
 
-        .toggle-group {
+        /* トグルスイッチ */
+        .toggle-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #2c3e50;
-            padding: 12px 15px;
-            border-radius: 8px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
             margin-bottom: 10px;
+        }
+
+        .toggle-label {
+            color: white;
+            font-size: 16px;
         }
 
         .toggle-switch {
             width: 50px;
-            height: 26px;
-            background: #7f8c8d;
-            border-radius: 13px;
+            height: 28px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 14px;
             position: relative;
             cursor: pointer;
             transition: background 0.3s;
         }
 
         .toggle-switch.active {
-            background: #27ae60;
+            background: rgba(46, 204, 113, 0.8);
         }
 
         .toggle-switch::after {
             content: '';
             position: absolute;
-            width: 22px;
-            height: 22px;
+            width: 24px;
+            height: 24px;
             background: white;
             border-radius: 50%;
             top: 2px;
@@ -183,93 +239,140 @@
         }
 
         .toggle-switch.active::after {
-            transform: translateX(24px);
+            transform: translateX(22px);
         }
 
-        .debug-info {
-            background: rgba(0,0,0,0.5);
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            margin-top: 10px;
-            font-family: monospace;
+        /* 初期画面 */
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
         }
 
-        .instructions {
-            background: #34495e;
-            padding: 15px;
-            border-radius: 10px;
+        .start-screen.hidden {
+            display: none;
+        }
+
+        .start-content {
+            text-align: center;
+            color: white;
+        }
+
+        .start-content h1 {
+            font-size: 32px;
             margin-bottom: 20px;
+        }
+
+        .start-content p {
+            font-size: 16px;
+            margin-bottom: 30px;
+            opacity: 0.9;
             line-height: 1.6;
         }
 
-        .instructions h3 {
-            margin-bottom: 10px;
-            color: #3498db;
+        .start-button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 18px 40px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
         }
 
-        .instructions ol {
-            margin-left: 20px;
+        .start-button:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
-        .instructions li {
-            margin-bottom: 5px;
+        /* フルスクリーンボタン */
+        .fullscreen-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .fullscreen-btn:active {
+            transform: scale(0.95);
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>ミラーボックスセラピー</h1>
+    <!-- 初期画面 -->
+    <div id="startScreen" class="start-screen">
+        <div class="start-content">
+            <h1>🪞 ミラーセラピー</h1>
+            <p>リハビリテーション支援アプリ<br>
+            健側の動きを鏡像として表示します</p>
+            <button class="start-button" onclick="initApp()">開始する</button>
+        </div>
     </div>
 
-    <div class="container">
-        <div id="statusBox" class="status-box">
-            準備完了 - カメラを起動してください
-        </div>
-
-        <div id="instructions" class="instructions">
-            <h3>📱 カメラが起動しない場合:</h3>
-            <ol>
-                <li>ブラウザの設定でカメラ権限を許可</li>
-                <li>ページを再読み込み（下にスワイプ）</li>
-                <li>もう一度「カメラ起動」をタップ</li>
-            </ol>
-        </div>
-
-        <div class="video-container">
+    <!-- メインコンテンツ -->
+    <div class="fullscreen-container">
+        <div class="video-wrapper">
             <video id="video" autoplay playsinline muted></video>
             <div id="centerLine" class="center-line"></div>
         </div>
 
-        <div id="timer" class="timer">00:00</div>
+        <!-- タイマー表示 -->
+        <div id="timerDisplay" class="timer-display">00:00</div>
 
-        <div class="controls">
-            <button id="startBtn" onclick="startCamera()" class="success">
-                📷 カメラ起動
-            </button>
+        <!-- フルスクリーンボタン -->
+        <button id="fullscreenBtn" class="fullscreen-btn" onclick="toggleFullscreen()">⛶</button>
 
-            <div id="toggleControls" style="display: none;">
-                <div class="toggle-group">
-                    <span>鏡像反転</span>
+        <!-- メニュートグルボタン -->
+        <button id="menuToggle" class="menu-toggle" onclick="toggleMenu()">☰</button>
+
+        <!-- コントロールパネル -->
+        <div id="controlPanel" class="control-panel">
+            <div class="control-grid">
+                <div class="toggle-item">
+                    <span class="toggle-label">鏡像反転</span>
                     <div id="mirrorToggle" class="toggle-switch active" onclick="toggleMirror()"></div>
                 </div>
 
-                <div class="toggle-group">
-                    <span>中心線</span>
+                <div class="toggle-item">
+                    <span class="toggle-label">中心線表示</span>
                     <div id="lineToggle" class="toggle-switch" onclick="toggleCenterLine()"></div>
                 </div>
 
-                <button id="timerBtn" onclick="toggleTimer()">
+                <button id="timerBtn" class="control-button primary" onclick="toggleTimer()">
                     ⏱️ タイマー開始
                 </button>
 
-                <button onclick="stopCamera()" class="danger">
-                    停止
+                <button class="control-button success" onclick="switchCamera()">
+                    📷 カメラ切替
+                </button>
+
+                <button class="control-button danger" onclick="stopSession()">
+                    ⏹️ セッション終了
                 </button>
             </div>
         </div>
-
-        <div id="debugInfo" class="debug-info" style="display: none;"></div>
     </div>
 
     <script>
@@ -277,110 +380,87 @@
         let timerInterval = null;
         let seconds = 0;
         let isMirrored = true;
+        let isMenuOpen = false;
+        let currentCamera = 'user';
 
-        // デバッグ情報を表示
-        function showDebug(message) {
-            const debugInfo = document.getElementById('debugInfo');
-            debugInfo.style.display = 'block';
-            debugInfo.innerHTML += `${new Date().toLocaleTimeString()}: ${message}<br>`;
-        }
-
-        // ステータス表示を更新
-        function updateStatus(message, type = '') {
-            const statusBox = document.getElementById('statusBox');
-            statusBox.textContent = message;
-            statusBox.className = 'status-box';
-            if (type) {
-                statusBox.classList.add(type);
+        // アプリ初期化
+        async function initApp() {
+            // アドレスバーを隠すためにスクロール
+            window.scrollTo(0, 1);
+            
+            // 全画面表示を促す
+            if (window.innerHeight < window.screen.height) {
+                setTimeout(() => {
+                    window.scrollTo(0, 1);
+                }, 100);
             }
-        }
-
-        async function startCamera() {
-            showDebug('カメラ起動開始...');
-            updateStatus('カメラを起動中...', 'warning');
 
             try {
-                // まず権限の状態を確認（対応していれば）
-                if (navigator.permissions && navigator.permissions.query) {
-                    try {
-                        const result = await navigator.permissions.query({ name: 'camera' });
-                        showDebug(`カメラ権限状態: ${result.state}`);
-                        
-                        if (result.state === 'denied') {
-                            updateStatus('⚠️ カメラ権限が拒否されています。ブラウザ設定で許可してください', 'error');
-                            showDebug('権限が拒否されています');
-                            return;
-                        }
-                    } catch (e) {
-                        showDebug('権限APIが利用できません');
-                    }
-                }
-
-                // getUserMediaが利用可能か確認
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    updateStatus('❌ このブラウザはカメラAPIに対応していません', 'error');
-                    showDebug('getUserMediaが利用できません');
-                    return;
-                }
-
-                // カメラを起動
-                const constraints = {
-                    video: {
-                        facingMode: 'user',
-                        width: { ideal: 640 },
-                        height: { ideal: 480 }
-                    },
-                    audio: false
-                };
-
-                showDebug('getUserMediaを呼び出し中...');
-                stream = await navigator.mediaDevices.getUserMedia(constraints);
-                
-                showDebug('カメラストリーム取得成功');
-                
-                const video = document.getElementById('video');
-                video.srcObject = stream;
-                
-                // 動画の準備ができたら
-                video.onloadedmetadata = () => {
-                    showDebug('ビデオメタデータ読み込み完了');
-                    updateStatus('✅ カメラ起動成功', 'success');
-                    
-                    // UIを更新
-                    document.getElementById('startBtn').style.display = 'none';
-                    document.getElementById('toggleControls').style.display = 'block';
-                    document.getElementById('instructions').style.display = 'none';
-                };
-
+                await startCamera();
+                document.getElementById('startScreen').classList.add('hidden');
             } catch (error) {
-                showDebug(`エラー: ${error.name} - ${error.message}`);
-                
-                let errorMessage = '❌ カメラの起動に失敗しました: ';
-                
-                switch(error.name) {
-                    case 'NotAllowedError':
-                        errorMessage += 'カメラへのアクセスが拒否されました。権限を許可してください。';
-                        break;
-                    case 'NotFoundError':
-                        errorMessage += 'カメラが見つかりません。';
-                        break;
-                    case 'NotReadableError':
-                        errorMessage += 'カメラは他のアプリで使用中です。';
-                        break;
-                    case 'OverconstrainedError':
-                        errorMessage += 'カメラの設定に問題があります。';
-                        break;
-                    case 'SecurityError':
-                        errorMessage += 'セキュリティエラー。HTTPSでアクセスしてください。';
-                        break;
-                    default:
-                        errorMessage += error.message;
-                }
-                
-                updateStatus(errorMessage, 'error');
+                alert('カメラの起動に失敗しました。\n' + error.message);
             }
         }
 
+        // カメラ起動
+        async function startCamera() {
+            const constraints = {
+                video: {
+                    facingMode: currentCamera,
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                },
+                audio: false
+            };
+
+            try {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+            } catch (error) {
+                console.error('Camera error:', error);
+                throw error;
+            }
+        }
+
+        // カメラ切替
+        async function switchCamera() {
+            currentCamera = currentCamera === 'user' ? 'environment' : 'user';
+            await startCamera();
+            closeMenu();
+        }
+
+        // メニューの表示/非表示
+        function toggleMenu() {
+            isMenuOpen = !isMenuOpen;
+            const panel = document.getElementById('controlPanel');
+            const toggle = document.getElementById('menuToggle');
+            
+            if (isMenuOpen) {
+                panel.classList.add('show');
+                toggle.classList.add('menu-open');
+                toggle.innerHTML = '✕';
+            } else {
+                panel.classList.remove('show');
+                toggle.classList.remove('menu-open');
+                toggle.innerHTML = '☰';
+            }
+        }
+
+        // メニューを閉じる
+        function closeMenu() {
+            isMenuOpen = false;
+            document.getElementById('controlPanel').classList.remove('show');
+            document.getElementById('menuToggle').classList.remove('menu-open');
+            document.getElementById('menuToggle').innerHTML = '☰';
+        }
+
+        // 鏡像反転切替
         function toggleMirror() {
             const video = document.getElementById('video');
             const toggle = document.getElementById('mirrorToggle');
@@ -394,10 +474,9 @@
                 video.classList.add('normal');
                 toggle.classList.remove('active');
             }
-            
-            showDebug(`鏡像: ${isMirrored ? 'ON' : 'OFF'}`);
         }
 
+        // 中心線表示切替
         function toggleCenterLine() {
             const line = document.getElementById('centerLine');
             const toggle = document.getElementById('lineToggle');
@@ -411,63 +490,96 @@
             }
         }
 
+        // タイマー切替
         function toggleTimer() {
             const btn = document.getElementById('timerBtn');
-            const timerDisplay = document.getElementById('timer');
+            const display = document.getElementById('timerDisplay');
             
             if (timerInterval) {
                 clearInterval(timerInterval);
                 timerInterval = null;
-                btn.textContent = '⏱️ タイマー開始';
+                btn.innerHTML = '⏱️ タイマー開始';
                 seconds = 0;
                 updateTimerDisplay();
-                timerDisplay.classList.remove('active');
+                display.classList.remove('active');
             } else {
-                timerDisplay.classList.add('active');
+                display.classList.add('active');
                 timerInterval = setInterval(() => {
                     seconds++;
                     updateTimerDisplay();
                 }, 1000);
-                btn.textContent = '⏸️ タイマー停止';
+                btn.innerHTML = '⏸️ タイマー停止';
+                closeMenu();
             }
         }
 
+        // タイマー表示更新
         function updateTimerDisplay() {
             const minutes = Math.floor(seconds / 60);
             const secs = seconds % 60;
-            document.getElementById('timer').textContent = 
+            document.getElementById('timerDisplay').textContent = 
                 `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
 
-        function stopCamera() {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
+        // セッション終了
+        function stopSession() {
+            if (confirm('セッションを終了しますか？')) {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    stream = null;
+                }
+                
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+                
+                seconds = 0;
+                document.getElementById('startScreen').classList.remove('hidden');
+                closeMenu();
             }
-            
-            if (timerInterval) {
-                clearInterval(timerInterval);
-                timerInterval = null;
-            }
-            
-            seconds = 0;
-            updateTimerDisplay();
-            
-            // UIをリセット
-            document.getElementById('startBtn').style.display = 'block';
-            document.getElementById('toggleControls').style.display = 'none';
-            document.getElementById('instructions').style.display = 'block';
-            document.getElementById('timer').classList.remove('active');
-            
-            updateStatus('準備完了 - カメラを起動してください');
-            showDebug('カメラ停止');
         }
 
-        // ページ情報を表示
-        window.addEventListener('DOMContentLoaded', () => {
-            showDebug(`URL: ${window.location.href}`);
-            showDebug(`Protocol: ${window.location.protocol}`);
-            showDebug(`UserAgent: ${navigator.userAgent.substring(0, 50)}...`);
+        // フルスクリーン切替
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Fullscreen error:', err);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // ビデオをタップしてメニュー開閉
+        document.addEventListener('DOMContentLoaded', () => {
+            const video = document.getElementById('video');
+            video.addEventListener('click', () => {
+                if (isMenuOpen) {
+                    closeMenu();
+                }
+            });
+        });
+
+        // アドレスバーを隠す処理
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                window.scrollTo(0, 1);
+            }, 0);
+        });
+
+        // 画面の向き変更時にリサイズ
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                window.scrollTo(0, 1);
+            }, 500);
+        });
+
+        // ページを離れる時の処理
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
         });
     </script>
 </body>
