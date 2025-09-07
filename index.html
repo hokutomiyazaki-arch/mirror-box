@@ -2,12 +2,29 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#000000">
-    <title>ミラーセラピー</title>
+    
+    <!-- PWA設定 -->
+    <meta name="application-name" content="ミラーボックスセラピー">
+    <meta name="apple-mobile-web-app-title" content="ミラーセラピー">
+    
+    <!-- アイコン設定 - GitHubのURLを確認後に更新してください -->
+    <link rel="icon" href="FNT512.png">
+    <link rel="apple-touch-icon" href="FNT512.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="FNT512.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="FNT512.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="FNT512.png">
+    
+    <!-- テーマカラー -->
+    <meta name="theme-color" content="#667eea">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <title>ミラーボックスセラピー</title>
     <style>
         * {
             margin: 0;
@@ -18,43 +35,142 @@
             user-select: none;
         }
 
-        html, body {
+        html {
+            overflow: hidden;
             width: 100%;
             height: 100%;
-            overflow: hidden;
-            background: #000;
+            position: fixed;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #0a0a0a;
+            color: #ffffff;
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            overflow: hidden;
+            top: 0;
+            left: 0;
+            padding-top: env(safe-area-inset-top);
+        }
+
+        /* スプラッシュスクリーン */
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+            transition: opacity 0.5s ease;
+        }
+
+        .splash-screen.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .splash-logo {
+            width: 150px;
+            height: 150px;
+            margin-bottom: 30px;
+        }
+
+        .splash-title {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .splash-subtitle {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .splash-copyright {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 20px;
+        }
+
+        /* メインコンテナ */
+        .main-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: none;
+        }
+
+        .main-container.show {
+            display: block;
+        }
+
+        /* ヘッダー（非表示可能） */
+        .header {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            z-index: 100;
+            transition: transform 0.3s;
         }
 
-        .fullscreen-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            height: 100dvh;
-            background: #000;
-            overflow: hidden;
+        .header.hidden {
+            transform: translateY(-100%);
         }
 
-        .video-wrapper {
+        .header-logo {
+            height: 40px;
+            width: auto;
+            background: white;
+            padding: 5px;
+            border-radius: 8px;
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
+        }
+
+        /* ビデオエリア */
+        .video-container {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+            background: #000;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #000;
         }
 
         video {
@@ -69,86 +185,42 @@
             transform: scaleX(1);
         }
 
+        /* 中心線 */
         .center-line {
             position: absolute;
             left: 50%;
             top: 0;
-            width: 2px;
+            width: 3px;
             height: 100%;
-            background: rgba(255, 0, 0, 0.4);
+            background: linear-gradient(180deg, 
+                transparent 0%, 
+                rgba(255, 0, 0, 0.6) 10%, 
+                rgba(255, 0, 0, 0.6) 90%, 
+                transparent 100%);
             display: none;
             pointer-events: none;
-            z-index: 10;
+            z-index: 50;
         }
 
         .center-line.active {
             display: block;
         }
 
-        /* メニュートグルボタン */
-        .menu-toggle {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: rgba(52, 152, 219, 0.9);
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            transition: transform 0.3s, background 0.3s;
-        }
-
-        .menu-toggle:active {
-            transform: scale(0.95);
-        }
-
-        .menu-toggle.menu-open {
-            background: rgba(231, 76, 60, 0.9);
-        }
-
-        /* コントロールパネル */
-        .control-panel {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            padding: 20px;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-            z-index: 999;
-            max-height: 60vh;
-            overflow-y: auto;
-        }
-
-        .control-panel.show {
-            transform: translateY(0);
-        }
-
         /* タイマー表示 */
         .timer-display {
             position: fixed;
-            top: 50px;
+            top: 70px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 48px;
+            font-size: 3rem;
             font-weight: bold;
             color: white;
-            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
-            background: rgba(0, 0, 0, 0.4);
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+            background: rgba(0, 0, 0, 0.5);
             padding: 10px 30px;
             border-radius: 30px;
             display: none;
-            z-index: 100;
+            z-index: 90;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
         }
@@ -157,183 +229,263 @@
             display: block;
         }
 
-        /* コントロールボタン */
-        .control-grid {
-            display: grid;
-            gap: 10px;
+        /* メニューボタン */
+        .menu-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
         }
 
-        .control-button {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
+        .menu-button:active {
+            transform: scale(0.95);
+        }
+
+        .menu-button.open {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        /* コントロールパネル */
+        .control-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 999;
+            max-height: 70vh;
+            overflow-y: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-panel.show {
+            transform: translateY(0);
+        }
+
+        /* タブ */
+        .tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tab {
+            flex: 1;
             padding: 15px;
-            border-radius: 12px;
-            font-size: 16px;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
             cursor: pointer;
             transition: all 0.3s;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
         }
 
-        .control-button:active {
-            transform: scale(0.98);
-            background: rgba(255, 255, 255, 0.2);
+        .tab.active {
+            color: white;
+            background: rgba(102, 126, 234, 0.2);
+            border-bottom: 2px solid #667eea;
         }
 
-        .control-button.primary {
-            background: rgba(52, 152, 219, 0.8);
-            border-color: rgba(52, 152, 219, 1);
+        /* タブコンテンツ */
+        .tab-content {
+            display: none;
+            padding: 20px;
         }
 
-        .control-button.danger {
-            background: rgba(231, 76, 60, 0.8);
-            border-color: rgba(231, 76, 60, 1);
+        .tab-content.active {
+            display: block;
         }
 
-        .control-button.success {
-            background: rgba(46, 204, 113, 0.8);
-            border-color: rgba(46, 204, 113, 1);
+        /* 説明セクション */
+        .description {
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.9);
         }
 
-        /* トグルスイッチ */
-        .toggle-item {
+        .description h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .description p {
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+        }
+
+        .description ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .description li {
+            padding: 10px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border-left: 3px solid #667eea;
+            padding-left: 15px;
+        }
+
+        /* コントロール */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px;
+            padding: 15px;
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            margin-bottom: 10px;
+            border-radius: 12px;
         }
 
-        .toggle-label {
+        .control-label {
             color: white;
-            font-size: 16px;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
+        /* トグルスイッチ */
         .toggle-switch {
-            width: 50px;
-            height: 28px;
+            width: 52px;
+            height: 30px;
             background: rgba(255, 255, 255, 0.2);
-            border-radius: 14px;
+            border-radius: 15px;
             position: relative;
             cursor: pointer;
             transition: background 0.3s;
         }
 
         .toggle-switch.active {
-            background: rgba(46, 204, 113, 0.8);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
         .toggle-switch::after {
             content: '';
             position: absolute;
-            width: 24px;
-            height: 24px;
+            width: 26px;
+            height: 26px;
             background: white;
             border-radius: 50%;
             top: 2px;
             left: 2px;
             transition: transform 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
         .toggle-switch.active::after {
             transform: translateX(22px);
         }
 
-        /* 初期画面 */
-        .start-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        /* ボタン */
+        .button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 2000;
-            padding: 20px;
+            gap: 10px;
         }
 
-        .start-screen.hidden {
+        .button.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .button.success {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            color: white;
+        }
+
+        .button.danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+
+        .button:active {
+            transform: scale(0.98);
+        }
+
+        /* フッター */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.8rem;
+            z-index: 80;
             display: none;
         }
 
-        .start-content {
-            text-align: center;
-            color: white;
+        .footer.show {
+            display: block;
         }
 
-        .start-content h1 {
-            font-size: 32px;
-            margin-bottom: 20px;
-        }
-
-        .start-content p {
-            font-size: 16px;
-            margin-bottom: 30px;
-            opacity: 0.9;
-            line-height: 1.6;
-        }
-
-        .start-button {
-            background: white;
-            color: #667eea;
-            border: none;
-            padding: 18px 40px;
-            border-radius: 30px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .start-button:active {
-            transform: scale(0.98);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-
-        /* フルスクリーンボタン */
-        .fullscreen-btn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: rgba(0, 0, 0, 0.5);
-            border: none;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-            z-index: 100;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-
-        .fullscreen-btn:active {
-            transform: scale(0.95);
+        /* レスポンシブ */
+        @media (max-width: 600px) {
+            .header-title {
+                font-size: 1rem;
+            }
+            
+            .timer-display {
+                font-size: 2.5rem;
+                top: 60px;
+            }
+            
+            .description {
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- 初期画面 -->
-    <div id="startScreen" class="start-screen">
-        <div class="start-content">
-            <h1>🪞 ミラーセラピー</h1>
-            <p>リハビリテーション支援アプリ<br>
-            健側の動きを鏡像として表示します</p>
-            <button class="start-button" onclick="initApp()">開始する</button>
-        </div>
+    <!-- スプラッシュスクリーン -->
+    <div id="splashScreen" class="splash-screen">
+        <img src="FNT512.png" alt="FNT Logo" class="splash-logo">
+        <div class="splash-title">Functional Neuro Training</div>
+        <div class="splash-subtitle">ミラーボックスセラピー</div>
+        <div class="splash-copyright">© Functional Neuro Training</div>
     </div>
 
-    <!-- メインコンテンツ -->
-    <div class="fullscreen-container">
-        <div class="video-wrapper">
+    <!-- メインコンテナ -->
+    <div id="mainContainer" class="main-container">
+        <!-- ヘッダー -->
+        <div id="header" class="header">
+            <img src="FNT512-transparent.png" alt="FNT" class="header-logo">
+            <h1 class="header-title">ミラーボックスセラピー</h1>
+        </div>
+
+        <!-- ビデオコンテナ -->
+        <div class="video-container">
             <video id="video" autoplay playsinline muted></video>
             <div id="centerLine" class="center-line"></div>
         </div>
@@ -341,65 +493,193 @@
         <!-- タイマー表示 -->
         <div id="timerDisplay" class="timer-display">00:00</div>
 
-        <!-- フルスクリーンボタン -->
-        <button id="fullscreenBtn" class="fullscreen-btn" onclick="toggleFullscreen()">⛶</button>
-
-        <!-- メニュートグルボタン -->
-        <button id="menuToggle" class="menu-toggle" onclick="toggleMenu()">☰</button>
+        <!-- メニューボタン -->
+        <button id="menuButton" class="menu-button">☰</button>
 
         <!-- コントロールパネル -->
         <div id="controlPanel" class="control-panel">
-            <div class="control-grid">
-                <div class="toggle-item">
-                    <span class="toggle-label">鏡像反転</span>
-                    <div id="mirrorToggle" class="toggle-switch active" onclick="toggleMirror()"></div>
-                </div>
-
-                <div class="toggle-item">
-                    <span class="toggle-label">中心線表示</span>
-                    <div id="lineToggle" class="toggle-switch" onclick="toggleCenterLine()"></div>
-                </div>
-
-                <button id="timerBtn" class="control-button primary" onclick="toggleTimer()">
-                    ⏱️ タイマー開始
-                </button>
-
-                <button class="control-button success" onclick="switchCamera()">
-                    📷 カメラ切替
-                </button>
-
-                <button class="control-button danger" onclick="stopSession()">
-                    ⏹️ セッション終了
-                </button>
+            <!-- タブ -->
+            <div class="tabs">
+                <button class="tab active" data-tab="controls">コントロール</button>
+                <button class="tab" data-tab="description">使い方</button>
+                <button class="tab" data-tab="about">説明</button>
             </div>
+
+            <!-- コントロールタブ -->
+            <div class="tab-content active" id="controls">
+                <div class="controls">
+                    <div class="control-item">
+                        <span class="control-label">
+                            <span>🪞</span>
+                            <span>鏡像反転</span>
+                        </span>
+                        <div id="mirrorToggle" class="toggle-switch active"></div>
+                    </div>
+
+                    <div class="control-item">
+                        <span class="control-label">
+                            <span>│</span>
+                            <span>中心線表示</span>
+                        </span>
+                        <div id="lineToggle" class="toggle-switch"></div>
+                    </div>
+
+                    <div class="control-item">
+                        <span class="control-label">
+                            <span>👁️</span>
+                            <span>ヘッダー表示</span>
+                        </span>
+                        <div id="headerToggle" class="toggle-switch active"></div>
+                    </div>
+
+                    <button id="timerButton" class="button primary">
+                        <span>⏱️</span>
+                        <span>タイマー開始</span>
+                    </button>
+
+                    <button id="cameraButton" class="button success">
+                        <span>📷</span>
+                        <span>カメラ切替</span>
+                    </button>
+
+                    <button id="fullscreenButton" class="button primary">
+                        <span>⛶</span>
+                        <span>全画面表示</span>
+                    </button>
+
+                    <button id="stopButton" class="button danger">
+                        <span>⏹️</span>
+                        <span>セッション終了</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 使い方タブ -->
+            <div class="tab-content" id="description">
+                <div class="description">
+                    <h3>📖 使い方</h3>
+                    <ul>
+                        <li>
+                            <strong>1. セットアップ</strong><br>
+                            デバイスを安定した場所に設置し、健側（動かせる側）の手足が画面に映るようにカメラを調整します
+                        </li>
+                        <li>
+                            <strong>2. 鏡像の確認</strong><br>
+                            画面に映る健側の動きが患側の動きのように見えることを確認します（左右反転）
+                        </li>
+                        <li>
+                            <strong>3. トレーニング開始</strong><br>
+                            健側を動かしながら、画面を見て患側が動いているイメージを脳に送ります
+                        </li>
+                        <li>
+                            <strong>4. 継続時間</strong><br>
+                            1回10-15分程度、1日2-3回を目安に行います。タイマー機能を活用してください
+                        </li>
+                    </ul>
+
+                    <h3>⚠️ 注意事項</h3>
+                    <p>
+                        • 必ず医療専門家の指導のもとで使用してください<br>
+                        • 疲労を感じたら休憩を取ってください<br>
+                        • 痛みがある場合は無理をしないでください
+                    </p>
+                </div>
+            </div>
+
+            <!-- 説明タブ -->
+            <div class="tab-content" id="about">
+                <div class="description">
+                    <h3>🧠 神経科学的な説明</h3>
+                    <p>
+                        ミラーボックスセラピーは、視覚的フィードバックを利用して脳の可塑性を促進する革新的なリハビリテーション技術です。
+                    </p>
+
+                    <h3>💡 作用機序</h3>
+                    <ul>
+                        <li>
+                            <strong>ミラーニューロンの活性化</strong><br>
+                            健側の動きを観察することで、両側の運動野のミラーニューロンが活性化され、患側の運動機能回復を促進します
+                        </li>
+                        <li>
+                            <strong>運動イメージの強化</strong><br>
+                            視覚的な錯覚により、患側が実際に動いているような感覚を脳に与え、運動プログラムの再構築を支援します
+                        </li>
+                        <li>
+                            <strong>脳の可塑性促進</strong><br>
+                            継続的な視覚刺激により、損傷を受けた脳領域の周辺部が機能を代償し、新たな神経回路の形成を促します
+                        </li>
+                    </ul>
+
+                    <h3>🎯 適応症</h3>
+                    <p>
+                        • 脳卒中後の片麻痺<br>
+                        • 複合性局所疼痛症候群（CRPS）<br>
+                        • 幻肢痛<br>
+                        • 末梢神経損傷<br>
+                        • 手の外科手術後のリハビリ
+                    </p>
+
+                    <h3>📊 エビデンス</h3>
+                    <p>
+                        多数の臨床研究により、ミラーセラピーは運動機能の改善、疼痛の軽減、日常生活動作の向上に有効であることが示されています。
+                        特に発症早期からの介入により、より良い機能回復が期待できます。
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- フッター -->
+        <div id="footer" class="footer">
+            © Functional Neuro Training - All rights reserved
         </div>
     </div>
 
     <script>
+        // グローバル変数
         let stream = null;
         let timerInterval = null;
         let seconds = 0;
-        let isMirrored = true;
         let isMenuOpen = false;
         let currentCamera = 'user';
+        let isMirrored = true;
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', async () => {
+            // スプラッシュスクリーンを表示
+            setTimeout(async () => {
+                await initializeApp();
+            }, 2000);
+
+            // イベントリスナーの設定
+            setupEventListeners();
+            
+            // PWA対応
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed'));
+            }
+        });
 
         // アプリ初期化
-        async function initApp() {
-            // アドレスバーを隠すためにスクロール
-            window.scrollTo(0, 1);
-            
-            // 全画面表示を促す
-            if (window.innerHeight < window.screen.height) {
-                setTimeout(() => {
-                    window.scrollTo(0, 1);
-                }, 100);
-            }
-
+        async function initializeApp() {
             try {
+                // カメラ起動
                 await startCamera();
-                document.getElementById('startScreen').classList.add('hidden');
+                
+                // スプラッシュスクリーンを非表示
+                document.getElementById('splashScreen').classList.add('hide');
+                
+                // メインコンテナを表示
+                document.getElementById('mainContainer').classList.add('show');
+                
+                // アドレスバーを隠す
+                if (window.scrollTo) {
+                    window.scrollTo(0, 1);
+                }
             } catch (error) {
-                alert('カメラの起動に失敗しました。\n' + error.message);
+                alert('カメラの起動に失敗しました。\nカメラへのアクセスを許可してください。');
+                console.error('Camera error:', error);
             }
         }
 
@@ -423,32 +703,63 @@
                 const video = document.getElementById('video');
                 video.srcObject = stream;
             } catch (error) {
-                console.error('Camera error:', error);
                 throw error;
             }
         }
 
-        // カメラ切替
-        async function switchCamera() {
-            currentCamera = currentCamera === 'user' ? 'environment' : 'user';
-            await startCamera();
-            closeMenu();
+        // イベントリスナー設定
+        function setupEventListeners() {
+            // メニューボタン
+            document.getElementById('menuButton').addEventListener('click', toggleMenu);
+
+            // タブ切替
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => switchTab(tab));
+            });
+
+            // トグルスイッチ
+            document.getElementById('mirrorToggle').addEventListener('click', toggleMirror);
+            document.getElementById('lineToggle').addEventListener('click', toggleCenterLine);
+            document.getElementById('headerToggle').addEventListener('click', toggleHeader);
+
+            // ボタン
+            document.getElementById('timerButton').addEventListener('click', toggleTimer);
+            document.getElementById('cameraButton').addEventListener('click', switchCamera);
+            document.getElementById('fullscreenButton').addEventListener('click', toggleFullscreen);
+            document.getElementById('stopButton').addEventListener('click', stopSession);
+
+            // ビデオタップでメニューを閉じる
+            document.getElementById('video').addEventListener('click', () => {
+                if (isMenuOpen) closeMenu();
+            });
+
+            // ページ離脱時の処理
+            window.addEventListener('beforeunload', () => {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+            });
+
+            // 画面向き変更
+            window.addEventListener('orientationchange', () => {
+                setTimeout(() => {
+                    window.scrollTo(0, 1);
+                }, 500);
+            });
         }
 
-        // メニューの表示/非表示
+        // メニュー切替
         function toggleMenu() {
             isMenuOpen = !isMenuOpen;
             const panel = document.getElementById('controlPanel');
-            const toggle = document.getElementById('menuToggle');
+            const button = document.getElementById('menuButton');
             
             if (isMenuOpen) {
                 panel.classList.add('show');
-                toggle.classList.add('menu-open');
-                toggle.innerHTML = '✕';
+                button.classList.add('open');
+                button.innerHTML = '✕';
             } else {
-                panel.classList.remove('show');
-                toggle.classList.remove('menu-open');
-                toggle.innerHTML = '☰';
+                closeMenu();
             }
         }
 
@@ -456,16 +767,30 @@
         function closeMenu() {
             isMenuOpen = false;
             document.getElementById('controlPanel').classList.remove('show');
-            document.getElementById('menuToggle').classList.remove('menu-open');
-            document.getElementById('menuToggle').innerHTML = '☰';
+            const button = document.getElementById('menuButton');
+            button.classList.remove('open');
+            button.innerHTML = '☰';
+        }
+
+        // タブ切替
+        function switchTab(tab) {
+            // タブのアクティブ状態を更新
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            // コンテンツの表示を更新
+            const tabName = tab.dataset.tab;
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName).classList.add('active');
         }
 
         // 鏡像反転切替
         function toggleMirror() {
+            isMirrored = !isMirrored;
             const video = document.getElementById('video');
             const toggle = document.getElementById('mirrorToggle');
-            
-            isMirrored = !isMirrored;
             
             if (isMirrored) {
                 video.classList.remove('normal');
@@ -476,7 +801,7 @@
             }
         }
 
-        // 中心線表示切替
+        // 中心線切替
         function toggleCenterLine() {
             const line = document.getElementById('centerLine');
             const toggle = document.getElementById('lineToggle');
@@ -490,25 +815,41 @@
             }
         }
 
+        // ヘッダー表示切替
+        function toggleHeader() {
+            const header = document.getElementById('header');
+            const toggle = document.getElementById('headerToggle');
+            
+            if (header.classList.contains('hidden')) {
+                header.classList.remove('hidden');
+                toggle.classList.add('active');
+            } else {
+                header.classList.add('hidden');
+                toggle.classList.remove('active');
+            }
+        }
+
         // タイマー切替
         function toggleTimer() {
-            const btn = document.getElementById('timerBtn');
+            const button = document.getElementById('timerButton');
             const display = document.getElementById('timerDisplay');
             
             if (timerInterval) {
+                // タイマー停止
                 clearInterval(timerInterval);
                 timerInterval = null;
-                btn.innerHTML = '⏱️ タイマー開始';
+                button.innerHTML = '<span>⏱️</span><span>タイマー開始</span>';
                 seconds = 0;
                 updateTimerDisplay();
                 display.classList.remove('active');
             } else {
+                // タイマー開始
                 display.classList.add('active');
                 timerInterval = setInterval(() => {
                     seconds++;
                     updateTimerDisplay();
                 }, 1000);
-                btn.innerHTML = '⏸️ タイマー停止';
+                button.innerHTML = '<span>⏸️</span><span>タイマー停止</span>';
                 closeMenu();
             }
         }
@@ -521,26 +862,19 @@
                 `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
 
-        // セッション終了
-        function stopSession() {
-            if (confirm('セッションを終了しますか？')) {
-                if (stream) {
-                    stream.getTracks().forEach(track => track.stop());
-                    stream = null;
-                }
-                
-                if (timerInterval) {
-                    clearInterval(timerInterval);
-                    timerInterval = null;
-                }
-                
-                seconds = 0;
-                document.getElementById('startScreen').classList.remove('hidden');
+        // カメラ切替
+        async function switchCamera() {
+            currentCamera = currentCamera === 'user' ? 'environment' : 'user';
+            try {
+                await startCamera();
                 closeMenu();
+            } catch (error) {
+                alert('カメラの切替に失敗しました。');
+                currentCamera = currentCamera === 'user' ? 'environment' : 'user';
             }
         }
 
-        // フルスクリーン切替
+        // 全画面切替
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen().catch(err => {
@@ -549,38 +883,50 @@
             } else {
                 document.exitFullscreen();
             }
+            closeMenu();
         }
 
-        // ビデオをタップしてメニュー開閉
-        document.addEventListener('DOMContentLoaded', () => {
-            const video = document.getElementById('video');
-            video.addEventListener('click', () => {
-                if (isMenuOpen) {
-                    closeMenu();
+        // セッション終了
+        function stopSession() {
+            if (confirm('セッションを終了しますか？\n記録はリセットされます。')) {
+                // ストリーム停止
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    stream = null;
                 }
-            });
-        });
+                
+                // タイマー停止
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+                
+                // リセット
+                seconds = 0;
+                updateTimerDisplay();
+                
+                // 再初期化
+                setTimeout(() => {
+                    initializeApp();
+                }, 500);
+                
+                closeMenu();
+            }
+        }
 
-        // アドレスバーを隠す処理
+        // アドレスバーを隠す
         window.addEventListener('load', () => {
             setTimeout(() => {
                 window.scrollTo(0, 1);
             }, 0);
         });
 
-        // 画面の向き変更時にリサイズ
-        window.addEventListener('orientationchange', () => {
-            setTimeout(() => {
-                window.scrollTo(0, 1);
-            }, 500);
-        });
-
-        // ページを離れる時の処理
-        window.addEventListener('beforeunload', () => {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
+        // スクロール防止
+        document.addEventListener('touchmove', (e) => {
+            if (e.target.closest('.control-panel') === null) {
+                e.preventDefault();
             }
-        });
+        }, { passive: false });
     </script>
 </body>
 </html>
