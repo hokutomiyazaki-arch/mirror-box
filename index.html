@@ -6,6 +6,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="screen-orientation" content="any">
     
     <!-- PWA設定 -->
     <meta name="application-name" content="ミラーボックスセラピー">
@@ -532,6 +533,14 @@
                         <div id="headerToggle" class="toggle-switch active"></div>
                     </div>
 
+                    <div class="control-item">
+                        <span class="control-label">
+                            <span>🔒</span>
+                            <span>画面回転ロック</span>
+                        </span>
+                        <div id="rotationToggle" class="toggle-switch"></div>
+                    </div>
+
                     <button id="timerButton" class="button primary">
                         <span>⏱️</span>
                         <span>タイマー開始</span>
@@ -642,9 +651,50 @@
         let isMenuOpen = false;
         let currentCamera = 'user';
         let isMirrored = true;
+        let currentOrientation = null;
+        let orientationLocked = false;
+
+        // 画面向き検出と制御
+        function detectOrientation() {
+            // 画面の向きを検出
+            if (window.matchMedia("(orientation: portrait)").matches) {
+                currentOrientation = 'portrait';
+            } else {
+                currentOrientation = 'landscape';
+            }
+        }
+
+        // 画面向きロック機能（実験的機能）
+        async function lockOrientation() {
+            if (screen.orientation && screen.orientation.lock) {
+                try {
+                    // 現在の向きでロック
+                    await screen.orientation.lock(currentOrientation);
+                    orientationLocked = true;
+                } catch (err) {
+                    // ロックがサポートされていない場合は無視
+                    console.log('Orientation lock not supported:', err);
+                }
+            }
+        }
+
+        // 画面向きロック解除
+        function unlockOrientation() {
+            if (screen.orientation && screen.orientation.unlock) {
+                try {
+                    screen.orientation.unlock();
+                    orientationLocked = false;
+                } catch (err) {
+                    console.log('Orientation unlock failed:', err);
+                }
+            }
+        }
 
         // 初期化
         document.addEventListener('DOMContentLoaded', async () => {
+            // 画面向きを検出
+            detectOrientation();
+            
             // スプラッシュスクリーンを表示
             setTimeout(async () => {
                 await initializeApp();
@@ -721,6 +771,7 @@
             document.getElementById('mirrorToggle').addEventListener('click', toggleMirror);
             document.getElementById('lineToggle').addEventListener('click', toggleCenterLine);
             document.getElementById('headerToggle').addEventListener('click', toggleHeader);
+            document.getElementById('rotationToggle').addEventListener('click', toggleRotationLock);
 
             // ボタン
             document.getElementById('timerButton').addEventListener('click', toggleTimer);
@@ -738,14 +789,52 @@
                 if (stream) {
                     stream.getTracks().forEach(track => track.stop());
                 }
+                // 画面向きロックを解除
+                unlockOrientation();
             });
 
-            // 画面向き変更
-            window.addEventListener('orientationchange', () => {
-                setTimeout(() => {
-                    window.scrollTo(0, 1);
-                }, 500);
-            });
+            // 画面向き変更の検出
+            if (screen.orientation) {
+                screen.orientation.addEventListener('change', handleOrientationChange);
+            } else {
+                // 旧式のAPIにフォールバック
+                window.addEventListener('orientationchange', handleOrientationChange);
+            }
+            
+            // メディアクエリによる向き変更検出（補完）
+            const portraitMediaQuery = window.matchMedia("(orientation: portrait)");
+            portraitMediaQuery.addListener(handleOrientationChange);
+        }
+
+        // 画面向き変更時の処理
+        function handleOrientationChange() {
+            const previousOrientation = currentOrientation;
+            detectOrientation();
+            
+            // ビューポートの再調整
+            setTimeout(() => {
+                window.scrollTo(0, 1);
+                
+                // カメラストリームの再調整が必要な場合
+                if (stream && previousOrientation !== currentOrientation) {
+                    adjustVideoOrientation();
+                }
+            }, 300);
+        }
+
+        // ビデオの向きを調整
+        function adjustVideoOrientation() {
+            const video = document.getElementById('video');
+            const container = document.querySelector('.video-container');
+            
+            // ビデオ要素のサイズを再計算
+            video.style.width = '100%';
+            video.style.height = '100%';
+            
+            // 強制的に再レンダリング
+            container.style.display = 'none';
+            container.offsetHeight; // リフロー強制
+            container.style.display = 'flex';
         }
 
         // メニュー切替
@@ -826,6 +915,21 @@
             } else {
                 header.classList.add('hidden');
                 toggle.classList.remove('active');
+            }
+        }
+
+        // 画面回転ロック切替
+        function toggleRotationLock() {
+            const toggle = document.getElementById('rotationToggle');
+            
+            if (orientationLocked) {
+                // ロック解除
+                unlockOrientation();
+                toggle.classList.remove('active');
+            } else {
+                // 現在の向きでロック
+                lockOrientation();
+                toggle.classList.add('active');
             }
         }
 
