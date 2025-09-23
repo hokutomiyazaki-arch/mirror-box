@@ -53,44 +53,22 @@
         }
 
         /* 回転制御用のコンテナ */
-        .app-wrapper {
+        #rotationContainer {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            overflow: hidden;
             transform-origin: center center;
+            transition: none;
         }
 
-        /* 縦向き固定時 */
-        .app-wrapper.lock-portrait {
-            width: 100vw;
-            height: 100vh;
-        }
-
-        /* 横向き固定時（縦向きデバイスで） */
-        @media screen and (orientation: portrait) {
-            .app-wrapper.lock-landscape {
-                width: 100vh;
-                height: 100vw;
-                transform: rotate(90deg);
-                position: fixed;
-                top: calc((100vh - 100vw) / 2);
-                left: calc((100vw - 100vh) / 2);
-            }
-        }
-
-        /* 縦向き固定時（横向きデバイスで） */
-        @media screen and (orientation: landscape) {
-            .app-wrapper.lock-portrait {
-                width: 100vh;
-                height: 100vw;
-                transform: rotate(-90deg);
-                position: fixed;
-                top: calc((100vh - 100vw) / 2);
-                left: calc((100vw - 100vh) / 2);
-            }
+        /* アプリ全体のラッパー */
+        .app-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
         }
 
         /* スプラッシュスクリーン */
@@ -146,9 +124,7 @@
 
         /* メインコンテナ */
         .main-container {
-            position: fixed;
-            top: 0;
-            left: 0;
+            position: relative;
             width: 100%;
             height: 100%;
             background: #000;
@@ -291,6 +267,42 @@
 
         .menu-button.open {
             background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        /* 画面回転ボタン */
+        .rotation-buttons {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 95;
+        }
+
+        .rotation-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .rotation-btn:active {
+            transform: scale(0.95);
+        }
+
+        .rotation-btn.active {
+            background: rgba(102, 126, 234, 0.8);
+            border-color: #667eea;
         }
 
         /* コントロールパネル */
@@ -469,6 +481,40 @@
             transform: scale(0.98);
         }
 
+        /* 画面向き選択ボタン */
+        .orientation-selector {
+            display: flex;
+            gap: 10px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+        }
+
+        .orientation-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            color: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .orientation-btn.active {
+            background: rgba(102, 126, 234, 0.3);
+            border-color: #667eea;
+        }
+
+        .orientation-btn span:first-child {
+            font-size: 1.5rem;
+        }
+
         /* フッター */
         .footer {
             position: fixed;
@@ -506,181 +552,211 @@
     </style>
 </head>
 <body>
-    <!-- アプリ全体のラッパー -->
-    <div id="appWrapper" class="app-wrapper">
-        <!-- スプラッシュスクリーン -->
-        <div id="splashScreen" class="splash-screen">
-        <img src="FNT512.png" alt="FNT Logo" class="splash-logo">
-        <div class="splash-title">Functional Neuro Training</div>
-        <div class="splash-subtitle">ミラーボックスセラピー</div>
-        <div class="splash-copyright">© Functional Neuro Training</div>
-    </div>
-
-    <!-- メインコンテナ -->
-    <div id="mainContainer" class="main-container">
-        <!-- ヘッダー -->
-        <div id="header" class="header">
-            <img src="FNT512-transparent.png" alt="FNT" class="header-logo">
-            <h1 class="header-title">ミラーボックスセラピー</h1>
-        </div>
-
-        <!-- ビデオコンテナ -->
-        <div class="video-container">
-            <video id="video" autoplay playsinline muted></video>
-            <div id="centerLine" class="center-line"></div>
-        </div>
-
-        <!-- タイマー表示 -->
-        <div id="timerDisplay" class="timer-display">00:00</div>
-
-        <!-- メニューボタン -->
-        <button id="menuButton" class="menu-button">☰</button>
-
-        <!-- コントロールパネル -->
-        <div id="controlPanel" class="control-panel">
-            <!-- タブ -->
-            <div class="tabs">
-                <button class="tab active" data-tab="controls">コントロール</button>
-                <button class="tab" data-tab="description">使い方</button>
-                <button class="tab" data-tab="about">説明</button>
+    <!-- 回転コンテナ -->
+    <div id="rotationContainer">
+        <!-- アプリ全体のラッパー -->
+        <div class="app-wrapper">
+            <!-- スプラッシュスクリーン -->
+            <div id="splashScreen" class="splash-screen">
+                <img src="FNT512.png" alt="FNT Logo" class="splash-logo">
+                <div class="splash-title">Functional Neuro Training</div>
+                <div class="splash-subtitle">ミラーボックスセラピー</div>
+                <div class="splash-copyright">© Functional Neuro Training</div>
             </div>
 
-            <!-- コントロールタブ -->
-            <div class="tab-content active" id="controls">
-                <div class="controls">
-                    <div class="control-item">
-                        <span class="control-label">
-                            <span>🪞</span>
-                            <span>鏡像反転</span>
-                        </span>
-                        <div id="mirrorToggle" class="toggle-switch active"></div>
-                    </div>
+            <!-- メインコンテナ -->
+            <div id="mainContainer" class="main-container">
+                <!-- ヘッダー -->
+                <div id="header" class="header">
+                    <img src="FNT512-transparent.png" alt="FNT" class="header-logo">
+                    <h1 class="header-title">ミラーボックスセラピー</h1>
+                </div>
 
-                    <div class="control-item">
-                        <span class="control-label">
-                            <span>│</span>
-                            <span>中心線表示</span>
-                        </span>
-                        <div id="lineToggle" class="toggle-switch"></div>
-                    </div>
-
-                    <div class="control-item">
-                        <span class="control-label">
-                            <span>👁️</span>
-                            <span>ヘッダー表示</span>
-                        </span>
-                        <div id="headerToggle" class="toggle-switch active"></div>
-                    </div>
-
-                    <div class="control-item">
-                        <span class="control-label">
-                            <span>🔒</span>
-                            <span>画面回転ロック</span>
-                        </span>
-                        <div id="rotationToggle" class="toggle-switch"></div>
-                    </div>
-
-                    <button id="timerButton" class="button primary">
-                        <span>⏱️</span>
-                        <span>タイマー開始</span>
+                <!-- 画面回転ボタン -->
+                <div class="rotation-buttons">
+                    <button id="portraitBtn" class="rotation-btn" title="縦向き">
+                        <span style="display: inline-block;">📱</span>
                     </button>
-
-                    <button id="cameraButton" class="button success">
-                        <span>📷</span>
-                        <span>カメラ切替</span>
-                    </button>
-
-                    <button id="fullscreenButton" class="button primary">
-                        <span>⛶</span>
-                        <span>全画面表示</span>
-                    </button>
-
-                    <button id="stopButton" class="button danger">
-                        <span>⏹️</span>
-                        <span>セッション終了</span>
+                    <button id="landscapeBtn" class="rotation-btn" title="横向き">
+                        <span style="display: inline-block; transform: rotate(90deg);">📱</span>
                     </button>
                 </div>
-            </div>
 
-            <!-- 使い方タブ -->
-            <div class="tab-content" id="description">
-                <div class="description">
-                    <h3>📖 使い方</h3>
-                    <ul>
-                        <li>
-                            <strong>1. セットアップ</strong><br>
-                            デバイスを安定した場所に設置し、健側（動かせる側）の手足が画面に映るようにカメラを調整します
-                        </li>
-                        <li>
-                            <strong>2. 鏡像の確認</strong><br>
-                            画面に映る健側の動きが患側の動きのように見えることを確認します（左右反転）
-                        </li>
-                        <li>
-                            <strong>3. トレーニング開始</strong><br>
-                            健側を動かしながら、画面を見て患側が動いているイメージを脳に送ります
-                        </li>
-                        <li>
-                            <strong>4. 継続時間</strong><br>
-                            1回10-15分程度、1日2-3回を目安に行います。タイマー機能を活用してください
-                        </li>
-                    </ul>
-
-                    <h3>⚠️ 注意事項</h3>
-                    <p>
-                        • 必ず医療専門家の指導のもとで使用してください<br>
-                        • 疲労を感じたら休憩を取ってください<br>
-                        • 痛みがある場合は無理をしないでください
-                    </p>
+                <!-- ビデオコンテナ -->
+                <div class="video-container">
+                    <video id="video" autoplay playsinline muted></video>
+                    <div id="centerLine" class="center-line"></div>
                 </div>
-            </div>
 
-            <!-- 説明タブ -->
-            <div class="tab-content" id="about">
-                <div class="description">
-                    <h3>🧠 神経科学的な説明</h3>
-                    <p>
-                        ミラーボックスセラピーは、視覚的フィードバックを利用して脳の可塑性を促進する革新的なリハビリテーション技術です。
-                    </p>
+                <!-- タイマー表示 -->
+                <div id="timerDisplay" class="timer-display">00:00</div>
 
-                    <h3>💡 作用機序</h3>
-                    <ul>
-                        <li>
-                            <strong>ミラーニューロンの活性化</strong><br>
-                            健側の動きを観察することで、両側の運動野のミラーニューロンが活性化され、患側の運動機能回復を促進します
-                        </li>
-                        <li>
-                            <strong>運動イメージの強化</strong><br>
-                            視覚的な錯覚により、患側が実際に動いているような感覚を脳に与え、運動プログラムの再構築を支援します
-                        </li>
-                        <li>
-                            <strong>脳の可塑性促進</strong><br>
-                            継続的な視覚刺激により、損傷を受けた脳領域の周辺部が機能を代償し、新たな神経回路の形成を促します
-                        </li>
-                    </ul>
+                <!-- メニューボタン -->
+                <button id="menuButton" class="menu-button">☰</button>
 
-                    <h3>🎯 適応症</h3>
-                    <p>
-                        • 脳卒中後の片麻痺<br>
-                        • 複合性局所疼痛症候群（CRPS）<br>
-                        • 幻肢痛<br>
-                        • 末梢神経損傷<br>
-                        • 手の外科手術後のリハビリ
-                    </p>
+                <!-- コントロールパネル -->
+                <div id="controlPanel" class="control-panel">
+                    <!-- タブ -->
+                    <div class="tabs">
+                        <button class="tab active" data-tab="controls">コントロール</button>
+                        <button class="tab" data-tab="description">使い方</button>
+                        <button class="tab" data-tab="about">説明</button>
+                    </div>
 
-                    <h3>📊 エビデンス</h3>
-                    <p>
-                        多数の臨床研究により、ミラーセラピーは運動機能の改善、疼痛の軽減、日常生活動作の向上に有効であることが示されています。
-                        特に発症早期からの介入により、より良い機能回復が期待できます。
-                    </p>
+                    <!-- コントロールタブ -->
+                    <div class="tab-content active" id="controls">
+                        <div class="controls">
+                            <!-- 画面向き選択 -->
+                            <div class="orientation-selector">
+                                <button id="orientPortrait" class="orientation-btn">
+                                    <span>📱</span>
+                                    <span>縦向き</span>
+                                </button>
+                                <button id="orientLandscape" class="orientation-btn">
+                                    <span>📱</span>
+                                    <span>横向き</span>
+                                </button>
+                                <button id="orientAuto" class="orientation-btn active">
+                                    <span>🔄</span>
+                                    <span>自動</span>
+                                </button>
+                            </div>
+
+                            <div class="control-item">
+                                <span class="control-label">
+                                    <span>🪞</span>
+                                    <span>鏡像反転</span>
+                                </span>
+                                <div id="mirrorToggle" class="toggle-switch active"></div>
+                            </div>
+
+                            <div class="control-item">
+                                <span class="control-label">
+                                    <span>│</span>
+                                    <span>中心線表示</span>
+                                </span>
+                                <div id="lineToggle" class="toggle-switch"></div>
+                            </div>
+
+                            <div class="control-item">
+                                <span class="control-label">
+                                    <span>👁️</span>
+                                    <span>ヘッダー表示</span>
+                                </span>
+                                <div id="headerToggle" class="toggle-switch active"></div>
+                            </div>
+
+                            <button id="cameraAccessButton" class="button primary" style="display: none;">
+                                <span>📷</span>
+                                <span>カメラを有効にする</span>
+                            </button>
+
+                            <button id="timerButton" class="button primary">
+                                <span>⏱️</span>
+                                <span>タイマー開始</span>
+                            </button>
+
+                            <button id="cameraButton" class="button success">
+                                <span>📷</span>
+                                <span>カメラ切替</span>
+                            </button>
+
+                            <button id="fullscreenButton" class="button primary">
+                                <span>⛶</span>
+                                <span>全画面表示</span>
+                            </button>
+
+                            <button id="stopButton" class="button danger">
+                                <span>⏹️</span>
+                                <span>セッション終了</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 使い方タブ -->
+                    <div class="tab-content" id="description">
+                        <div class="description">
+                            <h3>📖 使い方</h3>
+                            <ul>
+                                <li>
+                                    <strong>1. セットアップ</strong><br>
+                                    デバイスを安定した場所に設置し、健側（動かせる側）の手足が画面に映るようにカメラを調整します
+                                </li>
+                                <li>
+                                    <strong>2. 鏡像の確認</strong><br>
+                                    画面に映る健側の動きが患側の動きのように見えることを確認します（左右反転）
+                                </li>
+                                <li>
+                                    <strong>3. トレーニング開始</strong><br>
+                                    健側を動かしながら、画面を見て患側が動いているイメージを脳に送ります
+                                </li>
+                                <li>
+                                    <strong>4. 継続時間</strong><br>
+                                    1回10-15分程度、1日2-3回を目安に行います。タイマー機能を活用してください
+                                </li>
+                                <li>
+                                    <strong>5. 画面向きの変更</strong><br>
+                                    画面上部の📱ボタン、またはコントロールパネルから画面向きを選択できます
+                                </li>
+                            </ul>
+
+                            <h3>⚠️ 注意事項</h3>
+                            <p>
+                                • 必ず医療専門家の指導のもとで使用してください<br>
+                                • 疲労を感じたら休憩を取ってください<br>
+                                • 痛みがある場合は無理をしないでください
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 説明タブ -->
+                    <div class="tab-content" id="about">
+                        <div class="description">
+                            <h3>🧠 神経科学的な説明</h3>
+                            <p>
+                                ミラーボックスセラピーは、視覚的フィードバックを利用して脳の可塑性を促進する革新的なリハビリテーション技術です。
+                            </p>
+
+                            <h3>💡 作用機序</h3>
+                            <ul>
+                                <li>
+                                    <strong>ミラーニューロンの活性化</strong><br>
+                                    健側の動きを観察することで、両側の運動野のミラーニューロンが活性化され、患側の運動機能回復を促進します
+                                </li>
+                                <li>
+                                    <strong>運動イメージの強化</strong><br>
+                                    視覚的な錯覚により、患側が実際に動いているような感覚を脳に与え、運動プログラムの再構築を支援します
+                                </li>
+                                <li>
+                                    <strong>脳の可塑性促進</strong><br>
+                                    継続的な視覚刺激により、損傷を受けた脳領域の周辺部が機能を代償し、新たな神経回路の形成を促します
+                                </li>
+                            </ul>
+
+                            <h3>🎯 適応症</h3>
+                            <p>
+                                • 脳卒中後の片麻痺<br>
+                                • 複合性局所疼痛症候群（CRPS）<br>
+                                • 幻肢痛<br>
+                                • 末梢神経損傷<br>
+                                • 手の外科手術後のリハビリ
+                            </p>
+
+                            <h3>📊 エビデンス</h3>
+                            <p>
+                                多数の臨床研究により、ミラーセラピーは運動機能の改善、疼痛の軽減、日常生活動作の向上に有効であることが示されています。
+                                特に発症早期からの介入により、より良い機能回復が期待できます。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- フッター -->
+                <div id="footer" class="footer">
+                    © Functional Neuro Training - All rights reserved
                 </div>
             </div>
         </div>
-
-        <!-- フッター -->
-        <div id="footer" class="footer">
-            © Functional Neuro Training - All rights reserved
-        </div>
-    </div>
     </div>
 
     <script>
@@ -691,54 +767,28 @@
         let isMenuOpen = false;
         let currentCamera = 'user';
         let isMirrored = true;
-        let orientationLocked = false;
-        let lockedOrientation = null;
-
-        // デバイスの向きを取得
-        function getDeviceOrientation() {
-            if (window.matchMedia("(orientation: portrait)").matches) {
-                return 'portrait';
-            } else {
-                return 'landscape';
-            }
-        }
-
-        // 向きロック処理（CSSによる疑似ロック）
-        function applyOrientationLock(orientation) {
-            const wrapper = document.getElementById('appWrapper');
-            
-            if (!orientationLocked) {
-                // ロック解除
-                wrapper.className = 'app-wrapper';
-                return;
-            }
-
-            // 指定された向きでロック
-            if (orientation === 'portrait') {
-                wrapper.className = 'app-wrapper lock-portrait';
-            } else if (orientation === 'landscape') {
-                wrapper.className = 'app-wrapper lock-landscape';
-            }
-        }
-
-        // 向きの変更を監視
-        function handleOrientationChange() {
-            if (orientationLocked && lockedOrientation) {
-                // ロック中は指定の向きを維持
-                applyOrientationLock(lockedOrientation);
-            } else {
-                // ロックしていない場合は通常表示
-                applyOrientationLock(null);
-            }
-            
-            // ビューポート調整
-            setTimeout(() => {
-                window.scrollTo(0, 1);
-            }, 100);
-        }
+        let currentOrientation = 'auto';
+        let deviceOrientation = null;
+        let viewportWidth = window.innerWidth;
+        let viewportHeight = window.innerHeight;
 
         // 初期化
         document.addEventListener('DOMContentLoaded', async () => {
+            // 画面サイズを取得
+            updateViewportDimensions();
+            
+            // ローカルストレージから設定を復元
+            loadSettings();
+            
+            // カメラアクセスをチェック
+            navigator.permissions.query({name: 'camera'}).then(result => {
+                if (result.state === 'denied') {
+                    document.getElementById('cameraAccessButton').style.display = 'flex';
+                }
+            }).catch(() => {
+                // permissions APIがサポートされていない場合は無視
+            });
+            
             // スプラッシュスクリーンを表示
             setTimeout(async () => {
                 await initializeApp();
@@ -746,10 +796,6 @@
 
             // イベントリスナーの設定
             setupEventListeners();
-            
-            // 向き変更の監視
-            window.addEventListener('resize', handleOrientationChange);
-            window.addEventListener('orientationchange', handleOrientationChange);
             
             // PWA対応
             if ('serviceWorker' in navigator) {
@@ -759,25 +805,141 @@
             }
         });
 
+        // ビューポートサイズの更新
+        function updateViewportDimensions() {
+            viewportWidth = window.innerWidth;
+            viewportHeight = window.innerHeight;
+            deviceOrientation = viewportWidth > viewportHeight ? 'landscape' : 'portrait';
+        }
+
+        // 設定の保存
+        function saveSettings() {
+            const settings = {
+                orientation: currentOrientation,
+                mirror: isMirrored,
+                centerLine: document.getElementById('centerLine').classList.contains('active'),
+                headerVisible: !document.getElementById('header').classList.contains('hidden')
+            };
+            localStorage.setItem('mirrorTherapySettings', JSON.stringify(settings));
+        }
+
+        // 設定の読み込み
+        function loadSettings() {
+            const saved = localStorage.getItem('mirrorTherapySettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                currentOrientation = settings.orientation || 'auto';
+                isMirrored = settings.mirror !== undefined ? settings.mirror : true;
+                
+                // 設定を適用
+                setTimeout(() => {
+                    if (settings.centerLine) {
+                        document.getElementById('centerLine').classList.add('active');
+                        document.getElementById('lineToggle').classList.add('active');
+                    }
+                    if (settings.headerVisible === false) {
+                        document.getElementById('header').classList.add('hidden');
+                        document.getElementById('headerToggle').classList.remove('active');
+                    }
+                    applyOrientation(currentOrientation);
+                }, 100);
+            }
+        }
+
+        // 画面向きの適用
+        function applyOrientation(orientation) {
+            const container = document.getElementById('rotationContainer');
+            const buttons = {
+                portrait: document.getElementById('orientPortrait'),
+                landscape: document.getElementById('orientLandscape'),
+                auto: document.getElementById('orientAuto')
+            };
+            
+            const topButtons = {
+                portrait: document.getElementById('portraitBtn'),
+                landscape: document.getElementById('landscapeBtn')
+            };
+
+            // ボタンのアクティブ状態を更新
+            Object.values(buttons).forEach(btn => btn?.classList.remove('active'));
+            Object.values(topButtons).forEach(btn => btn?.classList.remove('active'));
+            
+            currentOrientation = orientation;
+            updateViewportDimensions();
+
+            // CSSトランスフォームを適用
+            if (orientation === 'portrait') {
+                buttons.portrait?.classList.add('active');
+                topButtons.portrait?.classList.add('active');
+                
+                if (deviceOrientation === 'landscape') {
+                    // 横向きデバイスで縦表示
+                    container.style.width = viewportHeight + 'px';
+                    container.style.height = viewportWidth + 'px';
+                    container.style.transform = 'rotate(-90deg)';
+                    container.style.top = ((viewportHeight - viewportWidth) / 2) + 'px';
+                    container.style.left = ((viewportWidth - viewportHeight) / 2) + 'px';
+                } else {
+                    // 縦向きデバイスで縦表示（通常）
+                    resetContainerTransform();
+                }
+            } else if (orientation === 'landscape') {
+                buttons.landscape?.classList.add('active');
+                topButtons.landscape?.classList.add('active');
+                
+                if (deviceOrientation === 'portrait') {
+                    // 縦向きデバイスで横表示
+                    container.style.width = viewportHeight + 'px';
+                    container.style.height = viewportWidth + 'px';
+                    container.style.transform = 'rotate(90deg)';
+                    container.style.top = ((viewportHeight - viewportWidth) / 2) + 'px';
+                    container.style.left = ((viewportWidth - viewportHeight) / 2) + 'px';
+                } else {
+                    // 横向きデバイスで横表示（通常）
+                    resetContainerTransform();
+                }
+            } else {
+                // 自動（デバイスの向きに従う）
+                buttons.auto?.classList.add('active');
+                resetContainerTransform();
+            }
+            
+            saveSettings();
+        }
+
+        // コンテナのトランスフォームをリセット
+        function resetContainerTransform() {
+            const container = document.getElementById('rotationContainer');
+            container.style.width = '100vw';
+            container.style.height = '100vh';
+            container.style.transform = 'none';
+            container.style.top = '0';
+            container.style.left = '0';
+        }
+
         // アプリ初期化
         async function initializeApp() {
             try {
-                // カメラ起動
-                await startCamera();
-                
                 // スプラッシュスクリーンを非表示
                 document.getElementById('splashScreen').classList.add('hide');
                 
                 // メインコンテナを表示
                 document.getElementById('mainContainer').classList.add('show');
                 
+                // カメラ起動を試みる（エラーが出ても続行）
+                try {
+                    await startCamera();
+                } catch (cameraError) {
+                    console.log('Camera initialization deferred:', cameraError);
+                    // カメラエラーは後で処理
+                }
+                
                 // アドレスバーを隠す
                 if (window.scrollTo) {
                     window.scrollTo(0, 1);
                 }
             } catch (error) {
-                alert('カメラの起動に失敗しました。\nカメラへのアクセスを許可してください。');
-                console.error('Camera error:', error);
+                console.error('App initialization error:', error);
             }
         }
 
@@ -801,7 +963,19 @@
                 const video = document.getElementById('video');
                 video.srcObject = stream;
             } catch (error) {
-                throw error;
+                console.error('Camera access error:', error);
+                // カメラアクセス失敗時は黒画面のまま続行
+                // ユーザーが手動でカメラを許可したらstartCameraを再実行
+            }
+        }
+
+        // カメラ権限の再要求
+        async function requestCameraAccess() {
+            try {
+                await startCamera();
+                alert('カメラが有効になりました。');
+            } catch (error) {
+                alert('カメラアクセスが拒否されています。\nブラウザの設定からカメラの使用を許可してください。');
             }
         }
 
@@ -815,21 +989,63 @@
                 tab.addEventListener('click', () => switchTab(tab));
             });
 
+            // 画面向きボタン（上部）
+            document.getElementById('portraitBtn').addEventListener('click', () => {
+                applyOrientation('portrait');
+                closeMenu();
+            });
+            
+            document.getElementById('landscapeBtn').addEventListener('click', () => {
+                applyOrientation('landscape');
+                closeMenu();
+            });
+
+            // 画面向きボタン（コントロールパネル）
+            document.getElementById('orientPortrait').addEventListener('click', () => {
+                applyOrientation('portrait');
+            });
+            
+            document.getElementById('orientLandscape').addEventListener('click', () => {
+                applyOrientation('landscape');
+            });
+            
+            document.getElementById('orientAuto').addEventListener('click', () => {
+                applyOrientation('auto');
+            });
+
             // トグルスイッチ
             document.getElementById('mirrorToggle').addEventListener('click', toggleMirror);
             document.getElementById('lineToggle').addEventListener('click', toggleCenterLine);
             document.getElementById('headerToggle').addEventListener('click', toggleHeader);
-            document.getElementById('rotationToggle').addEventListener('click', toggleRotationLock);
 
             // ボタン
             document.getElementById('timerButton').addEventListener('click', toggleTimer);
             document.getElementById('cameraButton').addEventListener('click', switchCamera);
+            document.getElementById('cameraAccessButton').addEventListener('click', requestCameraAccess);
             document.getElementById('fullscreenButton').addEventListener('click', toggleFullscreen);
             document.getElementById('stopButton').addEventListener('click', stopSession);
 
             // ビデオタップでメニューを閉じる
             document.getElementById('video').addEventListener('click', () => {
                 if (isMenuOpen) closeMenu();
+            });
+
+            // ウィンドウリサイズ検出
+            window.addEventListener('resize', () => {
+                updateViewportDimensions();
+                if (currentOrientation !== 'auto') {
+                    applyOrientation(currentOrientation);
+                }
+            });
+
+            // デバイスの向き変更検出
+            window.addEventListener('orientationchange', () => {
+                setTimeout(() => {
+                    updateViewportDimensions();
+                    if (currentOrientation !== 'auto') {
+                        applyOrientation(currentOrientation);
+                    }
+                }, 100);
             });
 
             // ページ離脱時の処理
@@ -866,11 +1082,9 @@
 
         // タブ切替
         function switchTab(tab) {
-            // タブのアクティブ状態を更新
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
 
-            // コンテンツの表示を更新
             const tabName = tab.dataset.tab;
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.remove('active');
@@ -891,6 +1105,7 @@
                 video.classList.add('normal');
                 toggle.classList.remove('active');
             }
+            saveSettings();
         }
 
         // 中心線切替
@@ -905,6 +1120,7 @@
                 line.classList.add('active');
                 toggle.classList.add('active');
             }
+            saveSettings();
         }
 
         // ヘッダー表示切替
@@ -919,25 +1135,7 @@
                 header.classList.add('hidden');
                 toggle.classList.remove('active');
             }
-        }
-
-        // 画面回転ロック切替
-        function toggleRotationLock() {
-            const toggle = document.getElementById('rotationToggle');
-            
-            if (orientationLocked) {
-                // ロック解除
-                orientationLocked = false;
-                lockedOrientation = null;
-                toggle.classList.remove('active');
-                applyOrientationLock(null);
-            } else {
-                // 現在の向きでロック
-                orientationLocked = true;
-                lockedOrientation = getDeviceOrientation();
-                toggle.classList.add('active');
-                applyOrientationLock(lockedOrientation);
-            }
+            saveSettings();
         }
 
         // タイマー切替
@@ -946,7 +1144,6 @@
             const display = document.getElementById('timerDisplay');
             
             if (timerInterval) {
-                // タイマー停止
                 clearInterval(timerInterval);
                 timerInterval = null;
                 button.innerHTML = '<span>⏱️</span><span>タイマー開始</span>';
@@ -954,7 +1151,6 @@
                 updateTimerDisplay();
                 display.classList.remove('active');
             } else {
-                // タイマー開始
                 display.classList.add('active');
                 timerInterval = setInterval(() => {
                     seconds++;
@@ -1000,23 +1196,19 @@
         // セッション終了
         function stopSession() {
             if (confirm('セッションを終了しますか？\n記録はリセットされます。')) {
-                // ストリーム停止
                 if (stream) {
                     stream.getTracks().forEach(track => track.stop());
                     stream = null;
                 }
                 
-                // タイマー停止
                 if (timerInterval) {
                     clearInterval(timerInterval);
                     timerInterval = null;
                 }
                 
-                // リセット
                 seconds = 0;
                 updateTimerDisplay();
                 
-                // 再初期化
                 setTimeout(() => {
                     initializeApp();
                 }, 500);
