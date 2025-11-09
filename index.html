@@ -52,23 +52,21 @@
             touch-action: none;
         }
 
-        /* 回転制御用のコンテナ */
-        #rotationContainer {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            transform-origin: center center;
-            transition: none;
-        }
-
         /* アプリ全体のラッパー */
         .app-wrapper {
             position: relative;
             width: 100%;
             height: 100%;
             overflow: hidden;
+        }
+
+        /* 向き固定時のレイアウト調整 */
+        .app-wrapper.orientation-locked {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
         }
 
         /* スプラッシュスクリーン */
@@ -515,6 +513,35 @@
             font-size: 1.5rem;
         }
 
+        /* 向き固定通知 */
+        .orientation-notice {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(102, 126, 234, 0.95);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 2000;
+            display: none;
+            max-width: 80%;
+            font-size: 1rem;
+            line-height: 1.5;
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        .orientation-notice.show {
+            display: block;
+        }
+
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(0.9); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
         /* フッター */
         .footer {
             position: fixed;
@@ -534,8 +561,8 @@
             display: block;
         }
 
-        /* レスポンシブ */
-        @media (max-width: 600px) {
+        /* レスポンシブ（向きに基づく） */
+        @media (orientation: portrait) {
             .header-title {
                 font-size: 1rem;
             }
@@ -544,7 +571,21 @@
                 font-size: 2.5rem;
                 top: 60px;
             }
+        }
+
+        @media (orientation: landscape) {
+            .control-panel {
+                max-height: 80vh;
+            }
             
+            .menu-button {
+                bottom: 20px;
+                right: 20px;
+            }
+        }
+
+        /* 小画面対応 */
+        @media (max-width: 600px) {
             .description {
                 font-size: 0.9rem;
             }
@@ -552,209 +593,212 @@
     </style>
 </head>
 <body>
-    <!-- 回転コンテナ -->
-    <div id="rotationContainer">
-        <!-- アプリ全体のラッパー -->
-        <div class="app-wrapper">
-            <!-- スプラッシュスクリーン -->
-            <div id="splashScreen" class="splash-screen">
-                <img src="FNT512.png" alt="FNT Logo" class="splash-logo">
-                <div class="splash-title">Functional Neuro Training</div>
-                <div class="splash-subtitle">ミラーボックスセラピー</div>
-                <div class="splash-copyright">© Functional Neuro Training</div>
+    <!-- アプリ全体のラッパー -->
+    <div class="app-wrapper" id="appWrapper">
+        <!-- スプラッシュスクリーン -->
+        <div id="splashScreen" class="splash-screen">
+            <img src="FNT512.png" alt="FNT Logo" class="splash-logo">
+            <div class="splash-title">Functional Neuro Training</div>
+            <div class="splash-subtitle">ミラーボックスセラピー</div>
+            <div class="splash-copyright">© Functional Neuro Training</div>
+        </div>
+
+        <!-- メインコンテナ -->
+        <div id="mainContainer" class="main-container">
+            <!-- ヘッダー -->
+            <div id="header" class="header">
+                <img src="FNT512-transparent.png" alt="FNT" class="header-logo">
+                <h1 class="header-title">ミラーボックスセラピー</h1>
             </div>
 
-            <!-- メインコンテナ -->
-            <div id="mainContainer" class="main-container">
-                <!-- ヘッダー -->
-                <div id="header" class="header">
-                    <img src="FNT512-transparent.png" alt="FNT" class="header-logo">
-                    <h1 class="header-title">ミラーボックスセラピー</h1>
+            <!-- 画面回転ボタン -->
+            <div class="rotation-buttons">
+                <button id="portraitBtn" class="rotation-btn" title="縦向き">
+                    <span style="display: inline-block;">📱</span>
+                </button>
+                <button id="landscapeBtn" class="rotation-btn" title="横向き">
+                    <span style="display: inline-block; transform: rotate(90deg);">📱</span>
+                </button>
+            </div>
+
+            <!-- ビデオコンテナ -->
+            <div class="video-container">
+                <video id="video" autoplay playsinline muted></video>
+                <div id="centerLine" class="center-line"></div>
+            </div>
+
+            <!-- タイマー表示 -->
+            <div id="timerDisplay" class="timer-display">00:00</div>
+
+            <!-- 向き固定通知 -->
+            <div id="orientationNotice" class="orientation-notice">
+                <span id="orientationMessage">画面を縦向きに固定しました</span>
+            </div>
+
+            <!-- メニューボタン -->
+            <button id="menuButton" class="menu-button">☰</button>
+
+            <!-- コントロールパネル -->
+            <div id="controlPanel" class="control-panel">
+                <!-- タブ -->
+                <div class="tabs">
+                    <button class="tab active" data-tab="controls">コントロール</button>
+                    <button class="tab" data-tab="description">使い方</button>
+                    <button class="tab" data-tab="about">説明</button>
                 </div>
 
-                <!-- 画面回転ボタン -->
-                <div class="rotation-buttons">
-                    <button id="portraitBtn" class="rotation-btn" title="縦向き">
-                        <span style="display: inline-block;">📱</span>
-                    </button>
-                    <button id="landscapeBtn" class="rotation-btn" title="横向き">
-                        <span style="display: inline-block; transform: rotate(90deg);">📱</span>
-                    </button>
-                </div>
-
-                <!-- ビデオコンテナ -->
-                <div class="video-container">
-                    <video id="video" autoplay playsinline muted></video>
-                    <div id="centerLine" class="center-line"></div>
-                </div>
-
-                <!-- タイマー表示 -->
-                <div id="timerDisplay" class="timer-display">00:00</div>
-
-                <!-- メニューボタン -->
-                <button id="menuButton" class="menu-button">☰</button>
-
-                <!-- コントロールパネル -->
-                <div id="controlPanel" class="control-panel">
-                    <!-- タブ -->
-                    <div class="tabs">
-                        <button class="tab active" data-tab="controls">コントロール</button>
-                        <button class="tab" data-tab="description">使い方</button>
-                        <button class="tab" data-tab="about">説明</button>
-                    </div>
-
-                    <!-- コントロールタブ -->
-                    <div class="tab-content active" id="controls">
-                        <div class="controls">
-                            <!-- 画面向き選択 -->
-                            <div class="orientation-selector">
-                                <button id="orientPortrait" class="orientation-btn">
-                                    <span>📱</span>
-                                    <span>縦向き</span>
-                                </button>
-                                <button id="orientLandscape" class="orientation-btn">
-                                    <span>📱</span>
-                                    <span>横向き</span>
-                                </button>
-                                <button id="orientAuto" class="orientation-btn active">
-                                    <span>🔄</span>
-                                    <span>自動</span>
-                                </button>
-                            </div>
-
-                            <div class="control-item">
-                                <span class="control-label">
-                                    <span>🪞</span>
-                                    <span>鏡像反転</span>
-                                </span>
-                                <div id="mirrorToggle" class="toggle-switch active"></div>
-                            </div>
-
-                            <div class="control-item">
-                                <span class="control-label">
-                                    <span>│</span>
-                                    <span>中心線表示</span>
-                                </span>
-                                <div id="lineToggle" class="toggle-switch"></div>
-                            </div>
-
-                            <div class="control-item">
-                                <span class="control-label">
-                                    <span>👁️</span>
-                                    <span>ヘッダー表示</span>
-                                </span>
-                                <div id="headerToggle" class="toggle-switch active"></div>
-                            </div>
-
-                            <button id="cameraAccessButton" class="button primary" style="display: none;">
-                                <span>📷</span>
-                                <span>カメラを有効にする</span>
+                <!-- コントロールタブ -->
+                <div class="tab-content active" id="controls">
+                    <div class="controls">
+                        <!-- 画面向き選択 -->
+                        <div class="orientation-selector">
+                            <button id="orientPortrait" class="orientation-btn">
+                                <span>📱</span>
+                                <span>縦向き</span>
                             </button>
-
-                            <button id="timerButton" class="button primary">
-                                <span>⏱️</span>
-                                <span>タイマー開始</span>
+                            <button id="orientLandscape" class="orientation-btn">
+                                <span>📱</span>
+                                <span>横向き</span>
                             </button>
-
-                            <button id="cameraButton" class="button success">
-                                <span>📷</span>
-                                <span>カメラ切替</span>
-                            </button>
-
-                            <button id="fullscreenButton" class="button primary">
-                                <span>⛶</span>
-                                <span>全画面表示</span>
-                            </button>
-
-                            <button id="stopButton" class="button danger">
-                                <span>⏹️</span>
-                                <span>セッション終了</span>
+                            <button id="orientAuto" class="orientation-btn active">
+                                <span>🔄</span>
+                                <span>自動</span>
                             </button>
                         </div>
-                    </div>
 
-                    <!-- 使い方タブ -->
-                    <div class="tab-content" id="description">
-                        <div class="description">
-                            <h3>📖 使い方</h3>
-                            <ul>
-                                <li>
-                                    <strong>1. セットアップ</strong><br>
-                                    デバイスを安定した場所に設置し、健側（動かせる側）の手足が画面に映るようにカメラを調整します
-                                </li>
-                                <li>
-                                    <strong>2. 鏡像の確認</strong><br>
-                                    画面に映る健側の動きが患側の動きのように見えることを確認します（左右反転）
-                                </li>
-                                <li>
-                                    <strong>3. トレーニング開始</strong><br>
-                                    健側を動かしながら、画面を見て患側が動いているイメージを脳に送ります
-                                </li>
-                                <li>
-                                    <strong>4. 継続時間</strong><br>
-                                    1回10-15分程度、1日2-3回を目安に行います。タイマー機能を活用してください
-                                </li>
-                                <li>
-                                    <strong>5. 画面向きの変更</strong><br>
-                                    画面上部の📱ボタン、またはコントロールパネルから画面向きを選択できます
-                                </li>
-                            </ul>
-
-                            <h3>⚠️ 注意事項</h3>
-                            <p>
-                                • 必ず医療専門家の指導のもとで使用してください<br>
-                                • 疲労を感じたら休憩を取ってください<br>
-                                • 痛みがある場合は無理をしないでください
-                            </p>
+                        <div class="control-item">
+                            <span class="control-label">
+                                <span>🪞</span>
+                                <span>鏡像反転</span>
+                            </span>
+                            <div id="mirrorToggle" class="toggle-switch active"></div>
                         </div>
-                    </div>
 
-                    <!-- 説明タブ -->
-                    <div class="tab-content" id="about">
-                        <div class="description">
-                            <h3>🧠 神経科学的な説明</h3>
-                            <p>
-                                ミラーボックスセラピーは、視覚的フィードバックを利用して脳の可塑性を促進する革新的なリハビリテーション技術です。
-                            </p>
-
-                            <h3>💡 作用機序</h3>
-                            <ul>
-                                <li>
-                                    <strong>ミラーニューロンの活性化</strong><br>
-                                    健側の動きを観察することで、両側の運動野のミラーニューロンが活性化され、患側の運動機能回復を促進します
-                                </li>
-                                <li>
-                                    <strong>運動イメージの強化</strong><br>
-                                    視覚的な錯覚により、患側が実際に動いているような感覚を脳に与え、運動プログラムの再構築を支援します
-                                </li>
-                                <li>
-                                    <strong>脳の可塑性促進</strong><br>
-                                    継続的な視覚刺激により、損傷を受けた脳領域の周辺部が機能を代償し、新たな神経回路の形成を促します
-                                </li>
-                            </ul>
-
-                            <h3>🎯 適応症</h3>
-                            <p>
-                                • 脳卒中後の片麻痺<br>
-                                • 複合性局所疼痛症候群（CRPS）<br>
-                                • 幻肢痛<br>
-                                • 末梢神経損傷<br>
-                                • 手の外科手術後のリハビリ
-                            </p>
-
-                            <h3>📊 エビデンス</h3>
-                            <p>
-                                多数の臨床研究により、ミラーセラピーは運動機能の改善、疼痛の軽減、日常生活動作の向上に有効であることが示されています。
-                                特に発症早期からの介入により、より良い機能回復が期待できます。
-                            </p>
+                        <div class="control-item">
+                            <span class="control-label">
+                                <span>│</span>
+                                <span>中心線表示</span>
+                            </span>
+                            <div id="lineToggle" class="toggle-switch"></div>
                         </div>
+
+                        <div class="control-item">
+                            <span class="control-label">
+                                <span>👁️</span>
+                                <span>ヘッダー表示</span>
+                            </span>
+                            <div id="headerToggle" class="toggle-switch active"></div>
+                        </div>
+
+                        <button id="cameraAccessButton" class="button primary" style="display: none;">
+                            <span>📷</span>
+                            <span>カメラを有効にする</span>
+                        </button>
+
+                        <button id="timerButton" class="button primary">
+                            <span>⏱️</span>
+                            <span>タイマー開始</span>
+                        </button>
+
+                        <button id="cameraButton" class="button success">
+                            <span>📷</span>
+                            <span>カメラ切替</span>
+                        </button>
+
+                        <button id="fullscreenButton" class="button primary">
+                            <span>⛶</span>
+                            <span>全画面表示</span>
+                        </button>
+
+                        <button id="stopButton" class="button danger">
+                            <span>⏹️</span>
+                            <span>セッション終了</span>
+                        </button>
                     </div>
                 </div>
 
-                <!-- フッター -->
-                <div id="footer" class="footer">
-                    © Functional Neuro Training - All rights reserved
+                <!-- 使い方タブ -->
+                <div class="tab-content" id="description">
+                    <div class="description">
+                        <h3>📖 使い方</h3>
+                        <ul>
+                            <li>
+                                <strong>1. セットアップ</strong><br>
+                                デバイスを安定した場所に設置し、健側（動かせる側）の手足が画面に映るようにカメラを調整します
+                            </li>
+                            <li>
+                                <strong>2. 鏡像の確認</strong><br>
+                                画面に映る健側の動きが患側の動きのように見えることを確認します（左右反転）
+                            </li>
+                            <li>
+                                <strong>3. トレーニング開始</strong><br>
+                                健側を動かしながら、画面を見て患側が動いているイメージを脳に送ります
+                            </li>
+                            <li>
+                                <strong>4. 継続時間</strong><br>
+                                1回10-15分程度、1日2-3回を目安に行います。タイマー機能を活用してください
+                            </li>
+                            <li>
+                                <strong>5. 画面向きの固定</strong><br>
+                                画面上部の📱ボタン、またはコントロールパネルから画面向きを固定できます
+                            </li>
+                        </ul>
+
+                        <h3>⚠️ 注意事項</h3>
+                        <p>
+                            • 必ず医療専門家の指導のもとで使用してください<br>
+                            • 疲労を感じたら休憩を取ってください<br>
+                            • 痛みがある場合は無理をしないでください<br>
+                            • フルスクリーン表示にすると、より画面向き固定が安定します
+                        </p>
+                    </div>
                 </div>
+
+                <!-- 説明タブ -->
+                <div class="tab-content" id="about">
+                    <div class="description">
+                        <h3>🧠 神経科学的な説明</h3>
+                        <p>
+                            ミラーボックスセラピーは、視覚的フィードバックを利用して脳の可塑性を促進する革新的なリハビリテーション技術です。
+                        </p>
+
+                        <h3>💡 作用機序</h3>
+                        <ul>
+                            <li>
+                                <strong>ミラーニューロンの活性化</strong><br>
+                                健側の動きを観察することで、両側の運動野のミラーニューロンが活性化され、患側の運動機能回復を促進します
+                            </li>
+                            <li>
+                                <strong>運動イメージの強化</strong><br>
+                                視覚的な錯覚により、患側が実際に動いているような感覚を脳に与え、運動プログラムの再構築を支援します
+                            </li>
+                            <li>
+                                <strong>脳の可塑性促進</strong><br>
+                                継続的な視覚刺激により、損傷を受けた脳領域の周辺部が機能を代償し、新たな神経回路の形成を促します
+                            </li>
+                        </ul>
+
+                        <h3>🎯 適応症</h3>
+                        <p>
+                            • 脳卒中後の片麻痺<br>
+                            • 複合性局所疼痛症候群（CRPS）<br>
+                            • 幻肢痛<br>
+                            • 末梢神経損傷<br>
+                            • 手の外科手術後のリハビリ
+                        </p>
+
+                        <h3>📊 エビデンス</h3>
+                        <p>
+                            多数の臨床研究により、ミラーセラピーは運動機能の改善、疼痛の軽減、日常生活動作の向上に有効であることが示されています。
+                            特に発症早期からの介入により、より良い機能回復が期待できます。
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- フッター -->
+            <div id="footer" class="footer">
+                © Functional Neuro Training - All rights reserved
             </div>
         </div>
     </div>
@@ -768,26 +812,20 @@
         let currentCamera = 'user';
         let isMirrored = true;
         let currentOrientation = 'auto';
-        let deviceOrientation = null;
-        let viewportWidth = window.innerWidth;
-        let viewportHeight = window.innerHeight;
+        let orientationLocked = false;
+        let wakeLock = null;
+
+        // Screen Orientation API のサポート確認
+        const hasOrientationAPI = 'orientation' in screen || 'mozOrientation' in screen || 'msOrientation' in screen;
+        const screenOrientation = screen.orientation || screen.mozOrientation || screen.msOrientation;
 
         // 初期化
         document.addEventListener('DOMContentLoaded', async () => {
-            // 画面サイズを取得
-            updateViewportDimensions();
-            
-            // ローカルストレージから設定を復元
+            // 設定を復元
             loadSettings();
             
             // カメラアクセスをチェック
-            navigator.permissions.query({name: 'camera'}).then(result => {
-                if (result.state === 'denied') {
-                    document.getElementById('cameraAccessButton').style.display = 'flex';
-                }
-            }).catch(() => {
-                // permissions APIがサポートされていない場合は無視
-            });
+            checkCameraPermission();
             
             // スプラッシュスクリーンを表示
             setTimeout(async () => {
@@ -800,16 +838,43 @@
             // PWA対応
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('SW registered'))
-                    .catch(err => console.log('SW registration failed'));
+                    .then(reg => console.log('Service Worker registered'))
+                    .catch(err => console.log('Service Worker registration failed'));
+            }
+
+            // Wake Lock API の対応
+            if ('wakeLock' in navigator) {
+                requestWakeLock();
             }
         });
 
-        // ビューポートサイズの更新
-        function updateViewportDimensions() {
-            viewportWidth = window.innerWidth;
-            viewportHeight = window.innerHeight;
-            deviceOrientation = viewportWidth > viewportHeight ? 'landscape' : 'portrait';
+        // Wake Lock を要求
+        async function requestWakeLock() {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                console.log('Wake Lock acquired');
+                
+                // Wake Lock が解除された場合の処理
+                wakeLock.addEventListener('release', () => {
+                    console.log('Wake Lock released');
+                    wakeLock = null;
+                });
+            } catch (err) {
+                console.log('Wake Lock failed:', err);
+            }
+        }
+
+        // カメラ権限チェック
+        function checkCameraPermission() {
+            if ('permissions' in navigator) {
+                navigator.permissions.query({name: 'camera'}).then(result => {
+                    if (result.state === 'denied') {
+                        document.getElementById('cameraAccessButton').style.display = 'flex';
+                    }
+                }).catch(() => {
+                    // permissions APIがサポートされていない場合は無視
+                });
+            }
         }
 
         // 設定の保存
@@ -827,28 +892,35 @@
         function loadSettings() {
             const saved = localStorage.getItem('mirrorTherapySettings');
             if (saved) {
-                const settings = JSON.parse(saved);
-                currentOrientation = settings.orientation || 'auto';
-                isMirrored = settings.mirror !== undefined ? settings.mirror : true;
-                
-                // 設定を適用
-                setTimeout(() => {
-                    if (settings.centerLine) {
-                        document.getElementById('centerLine').classList.add('active');
-                        document.getElementById('lineToggle').classList.add('active');
-                    }
-                    if (settings.headerVisible === false) {
-                        document.getElementById('header').classList.add('hidden');
-                        document.getElementById('headerToggle').classList.remove('active');
-                    }
-                    applyOrientation(currentOrientation);
-                }, 100);
+                try {
+                    const settings = JSON.parse(saved);
+                    currentOrientation = settings.orientation || 'auto';
+                    isMirrored = settings.mirror !== undefined ? settings.mirror : true;
+                    
+                    // 設定を適用
+                    setTimeout(() => {
+                        if (settings.centerLine) {
+                            document.getElementById('centerLine').classList.add('active');
+                            document.getElementById('lineToggle').classList.add('active');
+                        }
+                        if (settings.headerVisible === false) {
+                            document.getElementById('header').classList.add('hidden');
+                            document.getElementById('headerToggle').classList.remove('active');
+                        }
+                        if (!isMirrored) {
+                            document.getElementById('video').classList.add('normal');
+                            document.getElementById('mirrorToggle').classList.remove('active');
+                        }
+                        updateOrientationButtons(currentOrientation);
+                    }, 100);
+                } catch (e) {
+                    console.error('Failed to load settings:', e);
+                }
             }
         }
 
-        // 画面向きの適用
-        function applyOrientation(orientation) {
-            const container = document.getElementById('rotationContainer');
+        // 画面向きの設定
+        async function setOrientation(orientation) {
             const buttons = {
                 portrait: document.getElementById('orientPortrait'),
                 landscape: document.getElementById('orientLandscape'),
@@ -860,61 +932,166 @@
                 landscape: document.getElementById('landscapeBtn')
             };
 
-            // ボタンのアクティブ状態を更新
-            Object.values(buttons).forEach(btn => btn?.classList.remove('active'));
-            Object.values(topButtons).forEach(btn => btn?.classList.remove('active'));
-            
             currentOrientation = orientation;
-            updateViewportDimensions();
+            updateOrientationButtons(orientation);
 
-            // CSSトランスフォームを適用
-            if (orientation === 'portrait') {
-                buttons.portrait?.classList.add('active');
-                topButtons.portrait?.classList.add('active');
-                
-                if (deviceOrientation === 'landscape') {
-                    // 横向きデバイスで縦表示
-                    container.style.width = viewportHeight + 'px';
-                    container.style.height = viewportWidth + 'px';
-                    container.style.transform = 'rotate(-90deg)';
-                    container.style.top = ((viewportHeight - viewportWidth) / 2) + 'px';
-                    container.style.left = ((viewportWidth - viewportHeight) / 2) + 'px';
-                } else {
-                    // 縦向きデバイスで縦表示（通常）
-                    resetContainerTransform();
-                }
-            } else if (orientation === 'landscape') {
-                buttons.landscape?.classList.add('active');
-                topButtons.landscape?.classList.add('active');
-                
-                if (deviceOrientation === 'portrait') {
-                    // 縦向きデバイスで横表示
-                    container.style.width = viewportHeight + 'px';
-                    container.style.height = viewportWidth + 'px';
-                    container.style.transform = 'rotate(90deg)';
-                    container.style.top = ((viewportHeight - viewportWidth) / 2) + 'px';
-                    container.style.left = ((viewportWidth - viewportHeight) / 2) + 'px';
-                } else {
-                    // 横向きデバイスで横表示（通常）
-                    resetContainerTransform();
-                }
+            if (orientation === 'auto') {
+                // 自動モード - ロック解除
+                await unlockOrientation();
+                showOrientationNotice('画面向きを自動に設定しました');
             } else {
-                // 自動（デバイスの向きに従う）
-                buttons.auto?.classList.add('active');
-                resetContainerTransform();
+                // 特定の向きにロック
+                const success = await lockOrientation(orientation);
+                if (success) {
+                    const message = orientation === 'portrait' ? 
+                        '画面を縦向きに固定しました' : 
+                        '画面を横向きに固定しました';
+                    showOrientationNotice(message);
+                } else {
+                    // ロックに失敗した場合
+                    showOrientationNotice('画面向きの固定はフルスクリーンで有効になります');
+                    // フルスクリーン提案
+                    setTimeout(() => {
+                        if (!document.fullscreenElement) {
+                            suggestFullscreen();
+                        }
+                    }, 2000);
+                }
             }
             
             saveSettings();
         }
 
-        // コンテナのトランスフォームをリセット
-        function resetContainerTransform() {
-            const container = document.getElementById('rotationContainer');
-            container.style.width = '100vw';
-            container.style.height = '100vh';
-            container.style.transform = 'none';
-            container.style.top = '0';
-            container.style.left = '0';
+        // 画面向きをロック
+        async function lockOrientation(orientation) {
+            // フルスクリーン時またはPWAとしてインストール時により効果的
+            if (!screenOrientation) {
+                console.log('Screen Orientation API not supported');
+                return false;
+            }
+
+            try {
+                // orientation の値を API に合わせて変換
+                let orientationTypes = [];
+                if (orientation === 'portrait') {
+                    orientationTypes = ['portrait-primary', 'portrait-secondary', 'portrait'];
+                } else if (orientation === 'landscape') {
+                    orientationTypes = ['landscape-primary', 'landscape-secondary', 'landscape'];
+                }
+
+                // 複数の向きタイプを試す
+                for (let type of orientationTypes) {
+                    try {
+                        if (screenOrientation.lock) {
+                            await screenOrientation.lock(type);
+                            orientationLocked = true;
+                            console.log(`Orientation locked to ${type}`);
+                            return true;
+                        }
+                    } catch (e) {
+                        // このタイプがサポートされていない場合は次を試す
+                        continue;
+                    }
+                }
+
+                // 古いAPIの対応
+                if (screen.lockOrientation || screen.mozLockOrientation || screen.msLockOrientation) {
+                    const lockFunction = screen.lockOrientation || 
+                                       screen.mozLockOrientation || 
+                                       screen.msLockOrientation;
+                    for (let type of orientationTypes) {
+                        if (lockFunction.call(screen, type)) {
+                            orientationLocked = true;
+                            console.log(`Orientation locked to ${type} (legacy)`);
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            } catch (error) {
+                console.log('Orientation lock failed:', error);
+                return false;
+            }
+        }
+
+        // 画面向きロックを解除
+        async function unlockOrientation() {
+            if (!screenOrientation) {
+                return false;
+            }
+
+            try {
+                if (screenOrientation.unlock) {
+                    screenOrientation.unlock();
+                    orientationLocked = false;
+                    console.log('Orientation unlocked');
+                    return true;
+                }
+
+                // 古いAPIの対応
+                if (screen.unlockOrientation || screen.mozUnlockOrientation || screen.msUnlockOrientation) {
+                    const unlockFunction = screen.unlockOrientation || 
+                                         screen.mozUnlockOrientation || 
+                                         screen.msUnlockOrientation;
+                    unlockFunction.call(screen);
+                    orientationLocked = false;
+                    console.log('Orientation unlocked (legacy)');
+                    return true;
+                }
+            } catch (error) {
+                console.log('Orientation unlock failed:', error);
+            }
+            return false;
+        }
+
+        // 向き固定通知を表示
+        function showOrientationNotice(message) {
+            const notice = document.getElementById('orientationNotice');
+            const messageEl = document.getElementById('orientationMessage');
+            
+            messageEl.textContent = message;
+            notice.classList.add('show');
+            
+            setTimeout(() => {
+                notice.classList.remove('show');
+            }, 3000);
+        }
+
+        // フルスクリーンを提案
+        function suggestFullscreen() {
+            if (confirm('画面向きの固定を有効にするため、フルスクリーン表示にしますか？')) {
+                toggleFullscreen();
+            }
+        }
+
+        // ボタンの状態を更新
+        function updateOrientationButtons(orientation) {
+            const buttons = {
+                portrait: document.getElementById('orientPortrait'),
+                landscape: document.getElementById('orientLandscape'),
+                auto: document.getElementById('orientAuto')
+            };
+            
+            const topButtons = {
+                portrait: document.getElementById('portraitBtn'),
+                landscape: document.getElementById('landscapeBtn')
+            };
+
+            // すべてのボタンを非アクティブに
+            Object.values(buttons).forEach(btn => btn?.classList.remove('active'));
+            Object.values(topButtons).forEach(btn => btn?.classList.remove('active'));
+
+            // 選択されたボタンをアクティブに
+            if (orientation === 'portrait') {
+                buttons.portrait?.classList.add('active');
+                topButtons.portrait?.classList.add('active');
+            } else if (orientation === 'landscape') {
+                buttons.landscape?.classList.add('active');
+                topButtons.landscape?.classList.add('active');
+            } else {
+                buttons.auto?.classList.add('active');
+            }
         }
 
         // アプリ初期化
@@ -926,12 +1103,16 @@
                 // メインコンテナを表示
                 document.getElementById('mainContainer').classList.add('show');
                 
-                // カメラ起動を試みる（エラーが出ても続行）
+                // カメラ起動を試みる
                 try {
                     await startCamera();
                 } catch (cameraError) {
                     console.log('Camera initialization deferred:', cameraError);
-                    // カメラエラーは後で処理
+                }
+                
+                // 保存された向き設定を適用
+                if (currentOrientation !== 'auto') {
+                    await setOrientation(currentOrientation);
                 }
                 
                 // アドレスバーを隠す
@@ -962,10 +1143,13 @@
                 stream = await navigator.mediaDevices.getUserMedia(constraints);
                 const video = document.getElementById('video');
                 video.srcObject = stream;
+                
+                // カメラアクセスボタンを非表示
+                document.getElementById('cameraAccessButton').style.display = 'none';
             } catch (error) {
                 console.error('Camera access error:', error);
-                // カメラアクセス失敗時は黒画面のまま続行
-                // ユーザーが手動でカメラを許可したらstartCameraを再実行
+                // カメラアクセスボタンを表示
+                document.getElementById('cameraAccessButton').style.display = 'flex';
             }
         }
 
@@ -991,26 +1175,26 @@
 
             // 画面向きボタン（上部）
             document.getElementById('portraitBtn').addEventListener('click', () => {
-                applyOrientation('portrait');
+                setOrientation('portrait');
                 closeMenu();
             });
             
             document.getElementById('landscapeBtn').addEventListener('click', () => {
-                applyOrientation('landscape');
+                setOrientation('landscape');
                 closeMenu();
             });
 
             // 画面向きボタン（コントロールパネル）
             document.getElementById('orientPortrait').addEventListener('click', () => {
-                applyOrientation('portrait');
+                setOrientation('portrait');
             });
             
             document.getElementById('orientLandscape').addEventListener('click', () => {
-                applyOrientation('landscape');
+                setOrientation('landscape');
             });
             
             document.getElementById('orientAuto').addEventListener('click', () => {
-                applyOrientation('auto');
+                setOrientation('auto');
             });
 
             // トグルスイッチ
@@ -1030,30 +1214,58 @@
                 if (isMenuOpen) closeMenu();
             });
 
-            // ウィンドウリサイズ検出
-            window.addEventListener('resize', () => {
-                updateViewportDimensions();
-                if (currentOrientation !== 'auto') {
-                    applyOrientation(currentOrientation);
-                }
-            });
+            // 画面向き変更イベント
+            if (screenOrientation) {
+                screenOrientation.addEventListener('change', handleOrientationChange);
+            }
+            window.addEventListener('orientationchange', handleOrientationChange);
 
-            // デバイスの向き変更検出
-            window.addEventListener('orientationchange', () => {
-                setTimeout(() => {
-                    updateViewportDimensions();
-                    if (currentOrientation !== 'auto') {
-                        applyOrientation(currentOrientation);
-                    }
-                }, 100);
-            });
+            // フルスクリーン変更イベント
+            document.addEventListener('fullscreenchange', handleFullscreenChange);
+            document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+            document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
             // ページ離脱時の処理
             window.addEventListener('beforeunload', () => {
                 if (stream) {
                     stream.getTracks().forEach(track => track.stop());
                 }
+                if (wakeLock) {
+                    wakeLock.release();
+                }
             });
+
+            // ページ表示時に Wake Lock を再取得
+            document.addEventListener('visibilitychange', async () => {
+                if (!document.hidden && !wakeLock) {
+                    await requestWakeLock();
+                }
+            });
+        }
+
+        // 画面向き変更ハンドラ
+        function handleOrientationChange() {
+            // 向きが変更された時の処理
+            if (currentOrientation !== 'auto' && !orientationLocked) {
+                // ロックが解除されてしまった場合、再度ロックを試みる
+                setOrientation(currentOrientation);
+            }
+        }
+
+        // フルスクリーン変更ハンドラ
+        async function handleFullscreenChange() {
+            if (document.fullscreenElement) {
+                // フルスクリーンになった時、向きを再設定
+                if (currentOrientation !== 'auto') {
+                    await setOrientation(currentOrientation);
+                }
+            } else {
+                // フルスクリーン解除時
+                if (orientationLocked) {
+                    await unlockOrientation();
+                }
+            }
         }
 
         // メニュー切替
@@ -1182,11 +1394,20 @@
         }
 
         // 全画面切替
-        function toggleFullscreen() {
+        async function toggleFullscreen() {
             if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
+                try {
+                    await document.documentElement.requestFullscreen();
+                    // フルスクリーンになったら向きを再設定
+                    if (currentOrientation !== 'auto') {
+                        setTimeout(() => {
+                            setOrientation(currentOrientation);
+                        }, 100);
+                    }
+                } catch (err) {
                     console.log('Fullscreen error:', err);
-                });
+                    alert('フルスクリーン表示に失敗しました。');
+                }
             } else {
                 document.exitFullscreen();
             }
@@ -1208,9 +1429,11 @@
                 
                 seconds = 0;
                 updateTimerDisplay();
+                document.getElementById('timerDisplay').classList.remove('active');
                 
+                // カメラを再起動
                 setTimeout(() => {
-                    initializeApp();
+                    startCamera();
                 }, 500);
                 
                 closeMenu();
